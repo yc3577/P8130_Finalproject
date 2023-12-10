@@ -1,0 +1,23 @@
+---
+title: "Data analysis"
+author: "Yimeng Cai"
+date: "12/09/2023"
+output: html_document
+---
+
+## Libraries
+```{r}
+library(tidyverse)
+library(readr)
+```
+
+
+## Data load in
+```{r}
+breastcancer_data =
+  read_csv("Project_2_data.csv") |>
+  janitor::clean_names()
+  
+breastcancer_data
+```
+
