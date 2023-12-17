@@ -12,6 +12,7 @@ library(readr)
 library(boot)
 library(table1)
 library(gridExtra)
+library(MASS)
 ```
 
 
@@ -100,6 +101,7 @@ cor(bc) |>
 ## Exploratory visualisation
 
 ```{r age}
+
 plot1age = 
   breastcancer_data|>
   ggplot(aes(x = age)) +
@@ -308,6 +310,8 @@ plot14nodepositive =
 plot14nodepositive
 ```
 
+
+
 ```{r survive months}
 plot15survivalmonths = 
   breastcancer_data|>
@@ -330,7 +334,15 @@ grid.arrange(plot1age, plot10tumorsize, plot13nodeexamined,
              plot14nodepositive, plot15survivalmonths, ncol = 2)
 ```
 
-We can see that age is approximately normal, while tumor size, regional node examined, regional node positive and survival months are skewed. We should do transformation on these four variables.
+We can see that age is approximately normal, while tumor size, regional node examined, regional node positive and survival months are skewed. We should do transformation on these four variables. Before the transformation, we can use the Box-Cox plot to check which transformation work the best for them.
+
+```{r boxcox}
+bc_transform_tumorsize <- boxcox(breastcancer_data$tumor_size ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_regionalnode_examined <- boxcox(breastcancer_data$regional_node_examined ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_regionalnode_pos <- boxcox(breastcancer_data$reginol_node_positive ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_survival_month <- boxcox(breastcancer_data$survival_months ~ 1, lambda = seq(-2, 2, by=0.1))
+```
+The lambda value of tumor size, regional node examined, and regional node positive are all close to 0. Therefore, we should use log transformation of those three variables. However, 
 
 ```{r categorical variables}
 grid.arrange(plot2race, plot3marital,plot4tstage, 
