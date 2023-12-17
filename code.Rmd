@@ -378,6 +378,8 @@ model <- glm(formula, data = newbc, family = binomial())
 
 summary(model)
 ```
+Based on the above indicator test summary, we delete grade and x6th_stage.
+
 ```{r}
 # indicator test when y is Survival Months
 formula1 <- as.formula("survival_months ~ race + marital_status + t_stage + n_stage + x6th_stage + 
@@ -387,7 +389,7 @@ model1 <- lm(formula1, data = newbc)
 
 summary(model1)
 ```
-
+Based on the above indicator test summary, we delete grade and x6th_stage.
 
 ## Model Fitting
 

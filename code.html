@@ -1172,6 +1172,8 @@ summary(model)</code></pre>
 ## AIC: 3006.6
 ## 
 ## Number of Fisher Scoring iterations: 5</code></pre>
+<p>Based on the above indicator test summary, we delete grade and
+x6th_stage.</p>
 <pre class="r"><code># indicator test when y is Survival Months
 formula1 &lt;- as.formula(&quot;survival_months ~ race + marital_status + t_stage + n_stage + x6th_stage + 
                        differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + ln_examined+ reginol_node_positive+ age&quot;)
@@ -1224,6 +1226,8 @@ summary(model1)</code></pre>
 ## Residual standard error: 22.48 on 3999 degrees of freedom
 ## Multiple R-squared:  0.04425,    Adjusted R-squared:  0.03852 
 ## F-statistic: 7.715 on 24 and 3999 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>Based on the above indicator test summary, we delete grade and
+x6th_stage.</p>
 </div>
 <div id="model-fitting" class="section level2">
 <h2>Model Fitting</h2>
