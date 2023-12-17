@@ -13,6 +13,7 @@ library(boot)
 library(table1)
 library(gridExtra)
 library(MASS)
+library(car)
 ```
 
 ## Data Clean
@@ -426,8 +427,13 @@ Based on the above indicator test summary, we delete grade and x6th_stage becaus
 
 ```{r}
 # indicator test when y is Survival Months
+categorical_vars <- c("race", "marital_status", "t_stage", "n_stage", "x6th_stage", 
+                       "differentiate", "grade", "a_stage", 
+                       "estrogen_status", "progesterone_status")
+
+newbc1[categorical_vars] <- lapply(newbc1[categorical_vars], factor)
 formula1 <- as.formula("survival_months ~ race + marital_status + t_stage + n_stage + x6th_stage + 
-                       differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + sqrt_examined+  age")
+                       differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + sqrt_examined+ reginol_node_positive+ age")
 
 model1 <- lm(formula1, data = newbc1)
 
@@ -440,20 +446,23 @@ Based on the above indicator test summary, we delete grade and x6th_stage.
 ### Initial Model
 
 ```{r linear fit}
-lmfit=lm(survival_months ~ ., data = newbc1) 
+lmfit=lm(survival_months ~ race + marital_status + t_stage + n_stage + differentiate  + a_stage + estrogen_status + progesterone_status+ln_tumor + sqrt_examined+ reginol_node_positive+ age, data = newbc1) 
 summary(lmfit)
 
 par(mfrow=c(2,2))
 plot(lmfit)
 ```
 
-```{r logistic fit}
-glmfit=glm(status ~ ., data = newbc2)
+```{r}
+glmfit <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
+               a_stage + estrogen_status + progesterone_status + ln_tumor + 
+               sqrt_examined + reginol_node_positive + age, 
+               data = newbc2, family = binomial)
 summary(glmfit)
-# because logistic cannot satisfy linear assumptions
-par(mfrow=c(2,2))
+par(mfrow = c(2, 2))
 plot(glmfit)
 ```
+
 ## Partial Test 
 
 ### Partial test for numeric Y
@@ -494,8 +503,8 @@ summary(nummodel_partial_3)
 
 ```{r global test on binary Y}
 # Our 1st global model for the predicts without colinearity and not normal predicts
-model_global_bin = lm(status ~ race + marital_status + t_stage + n_stage + x6th_stage + 
-                       differentiate + grade + a_stage + estrogen_status + progesterone_status + ln_tumor + sqrt_examined + age, newbc2)
+model_global_bin = lm(status ~ race + marital_status + t_stage + n_stage + 
+                       differentiate + a_stage +estrogen_status + progesterone_status + ln_tumor + sqrt_examined + age, newbc2)
 
 summary(model_global_bin)
 
@@ -506,17 +515,17 @@ From the summary of the global model, we can see that from the P-value of race, 
 ```{r partial test on binary Y}
 
 # 1st binary partial test with all significant covariates
-binmodel_partial_1 = lm(status ~ marital_status + t_stage + n_stage + differentiate + grade + estrogen_status + progesterone_status + sqrt_examined + age, newbc2)
+binmodel_partial_1 = lm(status ~ marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age, newbc2)
 
 summary(binmodel_partial_1)
 
 # 2nd binary partial test with all in-significant covariates
-binmodel_partial_2 = lm(status ~ race + x6th_stage + a_stage + ln_tumor, newbc2)
+binmodel_partial_2 = lm(status ~ race +  a_stage + ln_tumor, newbc2)
 
 summary(binmodel_partial_2)
 
 # 3rd binary partial test with some significant in 2nd test added 
-binmodel_partial_3 = lm(status ~ marital_status + t_stage + n_stage + differentiate + grade + estrogen_status + progesterone_status + sqrt_examined + age + a_stage + ln_tumor, newbc2)
+binmodel_partial_3 = lm(status ~ marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age + a_stage + ln_tumor, newbc2)
 
 summary(binmodel_partial_3)
 
@@ -557,7 +566,7 @@ bin1_backward = stepAIC(binmodel_partial_1, direction = "backward")
 bin2_backward = stepAIC(binmodel_partial_2, direction = "backward")
 bin3_backward = stepAIC(binmodel_partial_3, direction = "backward")
 ```
-From the backward elimination, the best model with lowest AIC of -8726.68 is: status ~ marital_status + t_stage + n_stage + x6th_stage + differentiate + grade + estrogen_status + progesterone_status + sqrt_examined + age. 
+From the backward elimination, the best model with lowest AIC of -8741.1 is: status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age.
 
 
 ```{r forward selection on binary Y}
@@ -566,7 +575,7 @@ bin1_backward = stepAIC(binmodel_partial_1, direction = "forward")
 bin2_backward = stepAIC(binmodel_partial_2, direction = "forward")
 bin3_backward = stepAIC(binmodel_partial_3, direction = "forward")
 ```
-From the forward selection, the best model with lowest AIC of -8726.53 which is higher than that in backward elimination, so we will use the backward elimination model. 
+From the forward selection, the best model with lowest AIC of -8737.54 status ~ race + marital_status + t_stage + n_stage + differentiate +  a_stage + estrogen_status + progesterone_status + ln_tumor + sqrt_examined + age. Backward elimination selection has lower AIC value, so we prefer backward elimination model.
 
 ```{r stepwise regression on binary numeric Y}
 binglobal_backward = stepAIC(model_global_bin, direction = "both")
@@ -574,7 +583,67 @@ bin1_backward = stepAIC(binmodel_partial_1, direction = "both")
 bin2_backward = stepAIC(binmodel_partial_2, direction = "both")
 bin3_backward = stepAIC(binmodel_partial_3, direction = "both")
 ```
-- From the stepwise regression, we have the lowest AIC of -8726.68 which is the model of status ~ marital_status + t_stage + n_stage + x6th_stage + differentiate + grade + estrogen_status + progesterone_status + sqrt_examined + age which is the same result from backward elimination, so we will deicde to use this model for further criterion procedure. 
+- From the stepwise regression, we have the lowest AIC of -8741.1 which is the model of status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age. The model is the same compared to the one we picked from the backward elimination. We will go with this model for futher statistical testing. 
+
+## ANOVA
+#### anova for numeric Y
+```{r}
+# anova for numeric Y
+newbc1$ln_tumor <- ifelse(newbc1$ln_tumor <= 0, NA, newbc1$ln_tumor)
+
+# Apply transformations
+newbc1$sqrt_examined <- sqrt(newbc1$sqrt_examined)
+newbc1$ln_tumor <- log(newbc1$ln_tumor)
+
+# If you decide to remove rows with any NA values
+newbc1 <- na.omit(newbc1)
+
+# Fit the linear model
+lm_model <- lm(survival_months ~ marital_status + n_stage + estrogen_status + 
+               sqrt_examined + a_stage + progesterone_status + ln_tumor, 
+               data = newbc1)
+
+# Perform ANOVA
+anova_result <- anova(lm_model)
+print(anova_result)
+```
+Based on ANOVA test, matial_status, n_stage, estrogen_status, and ln_tumors are significant variables.
+
+```{r}
+# delete insignificant variables from the above anova table and fit a new model
+lm_model1 <- lm(survival_months ~ marital_status + n_stage + estrogen_status + ln_tumor, 
+               data = newbc1)
+
+# Perform ANOVA
+anova_result1 <- anova(lm_model1)
+print(anova_result1)
+```
+```{r}
+# Partial f test for nested model
+model_reduced <- lm(survival_months ~ marital_status + n_stage + estrogen_status + ln_tumor, 
+                    data = newbc1)
+model_full <- lm(survival_months ~ marital_status + n_stage + estrogen_status + 
+                 sqrt_examined + a_stage + progesterone_status + ln_tumor, 
+                 data = newbc1)
+anova(model_reduced, model_full)
+```
+With p significant p value,  we have enough evidence to show that the full model is better.
+
+#### anova for binary Y
+```{r}
+model2 <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age, data = newbc2)
+anova_result1 <- anova(model2)
+print(anova_result1)
+summary(model2)
+```
+
+```{r}
+null_model <- glm(status ~ 1, family = binomial, data = newbc2)
+
+anova(null_model, model2, test = "Chisq")
+```
+
+With p significant p value, we have enough evidence to show that the full model is better, which is status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age
 
 ## Criterion procedures
 
