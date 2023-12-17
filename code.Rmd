@@ -15,7 +15,6 @@ library(gridExtra)
 library(MASS)
 ```
 
-
 ## Data Clean
 
 ```{r data load}
@@ -101,7 +100,6 @@ cor(bc) |>
 ## Exploratory visualisation
 
 ```{r age}
-
 plot1age = 
   breastcancer_data|>
   ggplot(aes(x = age)) +
@@ -310,7 +308,9 @@ plot14nodepositive =
 plot14nodepositive
 ```
 
+Y1 = survive months; (numeric)
 
+Y2 = status; (binary)
 
 ```{r survive months}
 plot15survivalmonths = 
@@ -327,22 +327,29 @@ plot15survivalmonths =
 plot15survivalmonths
 ```
 
+```{r status}
+plot16status = 
+  bc|>
+  ggplot(aes(x = status)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "status",
+    x = "status",
+    y = "Frequency"
+  )
+
+plot16status
+```
+
 ### Summarized plots
 
 ```{r numeric variables}
 grid.arrange(plot1age, plot10tumorsize, plot13nodeexamined, 
-             plot14nodepositive, plot15survivalmonths, ncol = 2)
+             plot14nodepositive, ncol = 2)
 ```
 
-We can see that age is approximately normal, while tumor size, regional node examined, regional node positive and survival months are skewed. We should do transformation on these four variables. Before the transformation, we can use the Box-Cox plot to check which transformation work the best for them.
-
-```{r boxcox}
-bc_transform_tumorsize <- boxcox(breastcancer_data$tumor_size ~ 1, lambda = seq(-2, 2, by=0.1))
-bc_transform_regionalnode_examined <- boxcox(breastcancer_data$regional_node_examined ~ 1, lambda = seq(-2, 2, by=0.1))
-bc_transform_regionalnode_pos <- boxcox(breastcancer_data$reginol_node_positive ~ 1, lambda = seq(-2, 2, by=0.1))
-bc_transform_survival_month <- boxcox(breastcancer_data$survival_months ~ 1, lambda = seq(-2, 2, by=0.1))
-```
-The lambda value of tumor size, regional node examined, and regional node positive are all close to 0. Therefore, we should use log transformation of those three variables. However, 
+We can see that age is approximately normal, while tumor size, regional node examined, and regional node positive are skewed. 
 
 ```{r categorical variables}
 grid.arrange(plot2race, plot3marital,plot4tstage, 
@@ -357,20 +364,40 @@ par(mfrow = c(2, 2))
 hist(log(bc$tumor_size)) 
 hist(log(bc$regional_node_examined)) 
 hist(log(bc$reginol_node_positive))
-hist(log(bc$survival_months))
 ```
 
-We can see that tumor size and regional node examined become approximately normal after log transformation, while the other two still extremely skewed.
+We can see that tumor size and regional node examined become approximately normal after log transformation, while the other one still extremely skewed.
+
+We should do transformation on these four variables. Before the transformation, we can use the Box-Cox plot to check which transformation work the best for them.
+
+```{r boxcox}
+bc_transform_tumorsize <- boxcox(breastcancer_data$tumor_size ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_regionalnode_examined <- boxcox(breastcancer_data$regional_node_examined ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_regionalnode_pos <- boxcox(breastcancer_data$reginol_node_positive ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_survival_month <- boxcox(breastcancer_data$survival_months ~ 1, lambda = seq(-2, 2, by=0.1))
+```
+The lambda value of tumor size, regional node examined, and regional node positive are all close to 0. Therefore, we should use log transformation of those three variables. However, 
 
 ### Transformation model
 
-```{r transformation on numeric}
-newbc = bc |>
+```{r transformation on numeric Y}
+newbc1 = bc |>
   mutate(ln_tumor=log(tumor_size),
          ln_examined=log(regional_node_examined)) |>
   dplyr::select(-tumor_size) |>
-  dplyr::select(-regional_node_examined)
-newbc
+  dplyr::select(-regional_node_examined) |>
+  dplyr::select(-status)
+newbc1
+```
+
+```{r transformation on binary Y}
+newbc2 = bc |>
+  mutate(ln_tumor=log(tumor_size),
+         ln_examined=log(regional_node_examined)) |>
+  dplyr::select(-tumor_size) |>
+  dplyr::select(-regional_node_examined) |>
+  dplyr::select(-survival_months)
+newbc1
 ```
 
 ## Indicator Test
@@ -381,12 +408,12 @@ categorical_vars <- c("race", "marital_status", "t_stage", "n_stage", "x6th_stag
                        "differentiate", "grade", "a_stage", 
                        "estrogen_status", "progesterone_status")
 
-newbc[categorical_vars] <- lapply(newbc[categorical_vars], factor)
+newbc2[categorical_vars] <- lapply(newbc2[categorical_vars], factor)
 
 formula <- as.formula("status ~ race + marital_status + t_stage + n_stage + x6th_stage + 
                        differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + ln_examined+ reginol_node_positive+ age")
 
-model <- glm(formula, data = newbc, family = binomial())
+model <- glm(formula, data = newbc2, family = binomial())
 
 summary(model)
 ```
@@ -397,7 +424,7 @@ Based on the above indicator test summary, we delete grade and x6th_stage.
 formula1 <- as.formula("survival_months ~ race + marital_status + t_stage + n_stage + x6th_stage + 
                        differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + ln_examined+ reginol_node_positive+ age")
 
-model1 <- lm(formula1, data = newbc)
+model1 <- lm(formula1, data = newbc1)
 
 summary(model1)
 ```
@@ -408,29 +435,21 @@ Based on the above indicator test summary, we delete grade and x6th_stage.
 ### Initial Model
 
 ```{r linear fit}
-lmfit=lm(status ~ ., data = bc) 
+lmfit=lm(survival_months ~ ., data = newbc1) 
 summary(lmfit)
-
 
 par(mfrow=c(2,2))
 plot(lmfit)
 ```
 
 ```{r logistic fit}
-glmfit=glm(status ~ ., data = bc)
+glmfit=glm(status ~ ., data = newbc2)
 summary(glmfit)
+# because logistic cannot satisfy linear assumptions
 par(mfrow=c(2,2))
 plot(glmfit)
 ```
 
-
-
-```{r new glm}
-newglmfit=glm(status ~ ., data = newbc)
-summary(newglmfit)
-par(mfrow=c(2,2))
-plot(glmfit)
-```
 
 3. transformation
 3.1 interaction transformation 
