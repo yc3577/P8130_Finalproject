@@ -1,0 +1,459 @@
+---
+title: "Data analysis"
+date: "12/09/2023"
+output: html_document
+---
+
+## Libraries
+
+```{r library, message = FALSE}
+library(tidyverse)
+library(readr)
+library(boot)
+library(table1)
+library(gridExtra)
+library(MASS)
+```
+
+## Data Clean
+
+```{r data load}
+breastcancer_data =
+  read_csv("Project_2_data.csv") |>
+  janitor::clean_names()
+  
+summary(breastcancer_data)
+```
+
+```{r data clean}
+bc = breastcancer_data |>
+  mutate(
+    race=case_when(
+      race == "White" ~ 1,
+      race == "Black" ~ 2,
+      race == "Other" ~ 3),
+    marital_status=case_when(
+      marital_status == "Married" ~ 1,
+      marital_status == "Divorced" ~ 2,
+      marital_status == "Single" ~ 3,
+      marital_status == "Widowed" ~ 4,
+      marital_status == "Separated" ~ 5),
+    t_stage=case_when(
+      t_stage == "T1" ~ 1,
+      t_stage == "T2" ~ 2,
+      t_stage == "T3" ~ 3,
+      t_stage == "T4" ~ 4),
+    n_stage=case_when(
+      n_stage == "N1" ~ 1,
+      n_stage == "N2" ~ 2,
+      n_stage == "N3" ~ 3),
+    x6th_stage=case_when(
+      x6th_stage == "IIA" ~ 1,
+      x6th_stage == "IIIA" ~ 2,
+      x6th_stage == "IIIC" ~ 3,
+      x6th_stage == "IIB" ~ 4,
+      x6th_stage == "IIIB" ~ 5),
+    differentiate=case_when(
+      differentiate == "Poorly differentiated" ~ 1,
+      differentiate == "Moderately differentiated" ~ 2,
+      differentiate == "Well differentiated" ~ 3,
+      differentiate == "Undifferentiated" ~ 4),
+    grade=case_when(
+      grade == "1" ~ 1,
+      grade == "2" ~ 2,
+      grade == "3" ~ 3,
+      grade == "anaplastic; Grade IV" ~ 4),
+    a_stage=case_when(
+      a_stage == "Regional" ~ 1,
+      a_stage == "Distant" ~ 0),
+    estrogen_status=case_when(
+      estrogen_status == "Positive" ~ 1,
+      estrogen_status == "Negative" ~ 0),
+    progesterone_status=case_when(
+      progesterone_status == "Positive" ~ 1,
+      progesterone_status == "Negative" ~ 0),
+    status=case_when(
+      status == "Alive" ~ 1,
+      status == "Dead" ~ 0)
+    ) 
+```
+
+## Descriptive statistics for all variables
+
+```{r Descriptive statistics}
+summary(bc)
+```
+
+We change race, marital_status, t_stage, n_stage, x6th_stage, differentiate, and grade into multiple numeric levels, while a_stage, estrogen_status, progesterone_status, and status to binary levels. The above variables are categorical variables.
+
+And age, tumor_size, regional_node_examined, reginol_node_positive, and survival_months are numeric variables.
+
+## Covariance and Correlation
+
+```{r correlation}
+plot(bc)
+
+cor(bc) |>
+  knitr::kable(digits=4,caption="Correlation for all variables")
+```
+
+## Exploratory visualisation
+
+```{r age}
+plot1age = 
+  breastcancer_data|>
+  ggplot(aes(x = age)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5), binwidth = 5) +
+  theme_minimal() +
+  labs(
+    title = "Age Distribution",
+    x = "Age",
+    y = "Frequency"
+  )
+plot1age
+```
+
+```{r race}
+plot2race = 
+  breastcancer_data|>
+  ggplot(aes(x = race)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Race Distribution",
+    x = "Race",
+    y = "Frequency"
+  )
+plot2race
+```
+
+```{r marital}
+plot3marital = 
+  breastcancer_data|>
+  ggplot(aes(x = marital_status)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Marital Status Distribution",
+    x = "Marital Status",
+    y = "Frequency"
+  )
+
+plot3marital
+```
+
+```{r tstage}
+plot4tstage = 
+  breastcancer_data|>
+  ggplot(aes(x = t_stage)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "T Stage Distribution",
+    x = "T Stage",
+    y = "Frequency"
+  )
+
+plot4tstage
+```
+
+```{r nstage}
+plot5nstage = 
+  breastcancer_data|>
+  ggplot(aes(x = n_stage)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "N Stage Distribution",
+    x = "N Stage",
+    y = "Frequency"
+  )
+
+plot5nstage
+```
+
+```{r x6thstage}
+plot6x6thstage = 
+  breastcancer_data|>
+  ggplot(aes(x = x6th_stage)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "x6th Stage Distribution",
+    x = "x6th Stage",
+    y = "Frequency"
+  )
+
+plot6x6thstage
+```
+
+```{r differentate}
+plot7differentate = 
+  breastcancer_data|>
+  ggplot(aes(x = differentiate)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Differentate Distribution",
+    x = "Differentate Group",
+    y = "Frequency"
+  )
+
+plot7differentate
+```
+
+```{r grade}
+plot8grade = 
+  breastcancer_data|>
+  ggplot(aes(x = grade)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Grade Distribution",
+    x = "Grade",
+    y = "Frequency"
+  )
+
+plot8grade
+```
+
+```{r astage}
+plot9astage = 
+  breastcancer_data|>
+  ggplot(aes(x = a_stage)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "A_stage Distribution",
+    x = "A Stage",
+    y = "Frequency"
+  )
+
+plot9astage
+```
+
+
+```{r tumorsize}
+plot10tumorsize = 
+  breastcancer_data|>
+  ggplot(aes(x = tumor_size)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Tumor Size Distribution",
+    x = "Tumor Size",
+    y = "Frequency"
+  )
+
+plot10tumorsize
+```
+
+```{r estrogen}
+plot11estrogen = 
+  breastcancer_data|>
+  ggplot(aes(x = estrogen_status)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Estrogen Status Distribution",
+    x = "Estrogen Status",
+    y = "Frequency"
+  )
+
+plot11estrogen
+```
+
+```{r progesterone}
+plot12progesterone = 
+  breastcancer_data|>
+  ggplot(aes(x = progesterone_status)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Progesterone Status Distribution",
+    x = "Progesterone Status",
+    y = "Frequency"
+  )
+
+plot12progesterone
+```
+
+```{r nodeexamined}
+plot13nodeexamined = 
+  breastcancer_data|>
+  ggplot(aes(x = regional_node_examined)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Regional Node Examined Distribution",
+    x = "Examined Regional Node",
+    y = "Frequency"
+  )
+
+plot13nodeexamined
+```
+
+```{r nodepositive}
+plot14nodepositive = 
+  breastcancer_data|>
+  ggplot(aes(x = reginol_node_positive)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Regional Node Positive Distribution",
+    x = "Positive Reginol Node",
+    y = "Frequency"
+  )
+
+plot14nodepositive
+```
+
+Y1 = survive months; (numeric)
+
+Y2 = status; (binary)
+
+```{r survive months}
+plot15survivalmonths = 
+  breastcancer_data|>
+  ggplot(aes(x = survival_months)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Survival Months",
+    x = "Number of survival months",
+    y = "Frequency"
+  )
+
+plot15survivalmonths
+```
+
+```{r status}
+plot16status = 
+  bc|>
+  ggplot(aes(x = status)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "status",
+    x = "status",
+    y = "Frequency"
+  )
+
+plot16status
+```
+
+### Summarized plots
+
+```{r numeric variables}
+grid.arrange(plot1age, plot10tumorsize, plot13nodeexamined, 
+             plot14nodepositive, ncol = 2)
+```
+
+We can see that age is approximately normal, while tumor size, regional node examined, and regional node positive are skewed. 
+
+```{r categorical variables}
+grid.arrange(plot2race, plot3marital,plot4tstage, 
+             plot5nstage, plot6x6thstage,plot7differentate,
+             plot8grade,plot9astage,plot11estrogen,plot12progesterone, ncol = 3)
+```
+
+## Transformation
+
+```{r log transformation on numeric}
+par(mfrow = c(2, 2)) 
+hist(log(bc$tumor_size)) 
+hist(log(bc$regional_node_examined)) 
+hist(log(bc$reginol_node_positive))
+```
+
+We can see that tumor size and regional node examined become approximately normal after log transformation, while the other one still extremely skewed.
+
+We should do transformation on these four variables. Before the transformation, we can use the Box-Cox plot to check which transformation work the best for them.
+
+```{r boxcox}
+bc_transform_tumorsize <- boxcox(breastcancer_data$tumor_size ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_regionalnode_examined <- boxcox(breastcancer_data$regional_node_examined ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_regionalnode_pos <- boxcox(breastcancer_data$reginol_node_positive ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_survival_month <- boxcox(breastcancer_data$survival_months ~ 1, lambda = seq(-2, 2, by=0.1))
+```
+The lambda value of tumor size, regional node examined, and regional node positive are all close to 0. Therefore, we should use log transformation of those three variables. However, 
+
+### Transformation model
+
+```{r transformation on numeric Y}
+newbc1 = bc |>
+  mutate(ln_tumor=log(tumor_size),
+         ln_examined=log(regional_node_examined)) |>
+  dplyr::select(-tumor_size) |>
+  dplyr::select(-regional_node_examined) |>
+  dplyr::select(-status)
+newbc1
+```
+
+```{r transformation on binary Y}
+newbc2 = bc |>
+  mutate(ln_tumor=log(tumor_size),
+         ln_examined=log(regional_node_examined)) |>
+  dplyr::select(-tumor_size) |>
+  dplyr::select(-regional_node_examined) |>
+  dplyr::select(-survival_months)
+newbc1
+```
+
+## Indicator Test
+
+```{r}
+# indicator test when y is status
+categorical_vars <- c("race", "marital_status", "t_stage", "n_stage", "x6th_stage", 
+                       "differentiate", "grade", "a_stage", 
+                       "estrogen_status", "progesterone_status")
+
+newbc2[categorical_vars] <- lapply(newbc2[categorical_vars], factor)
+
+formula <- as.formula("status ~ race + marital_status + t_stage + n_stage + x6th_stage + 
+                       differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + ln_examined+ reginol_node_positive+ age")
+
+model <- glm(formula, data = newbc2, family = binomial())
+
+summary(model)
+```
+Based on the above indicator test summary, we delete grade and x6th_stage.
+
+```{r}
+# indicator test when y is Survival Months
+formula1 <- as.formula("survival_months ~ race + marital_status + t_stage + n_stage + x6th_stage + 
+                       differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + ln_examined+ reginol_node_positive+ age")
+
+model1 <- lm(formula1, data = newbc1)
+
+summary(model1)
+```
+Based on the above indicator test summary, we delete grade and x6th_stage.
+
+## Model Fitting
+
+### Initial Model
+
+```{r linear fit}
+lmfit=lm(survival_months ~ ., data = newbc1) 
+summary(lmfit)
+
+par(mfrow=c(2,2))
+plot(lmfit)
+```
+
+```{r logistic fit}
+glmfit=glm(status ~ ., data = newbc2)
+summary(glmfit)
+# because logistic cannot satisfy linear assumptions
+par(mfrow=c(2,2))
+plot(glmfit)
+```
+3.0 transformation
+3.1 interaction transformation 
+3.2 partial test 
+3.3 diagnostic boxcox 
+4. Step-wise: forward/ backward /AIC 
+5. final model 
+6. model assumption (check multicolinearity (VIF))
+7. cross validation
