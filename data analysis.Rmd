@@ -28,7 +28,7 @@ breastcancer_data
 plot1age = 
   breastcancer_data|>
   ggplot(aes(x = age)) +
-  geom_histogram(color = "blue", fill = alpha("blue", 0.5), binwidth = 5) +
+  geom_boxplot(color = "blue", fill = alpha("blue", 0.5), binwidth = 5) +
   theme_minimal() +
   labs(
     title = "Age Distribution",
@@ -168,7 +168,7 @@ plot9astage
 plot10tumorsize = 
   breastcancer_data|>
   ggplot(aes(x = tumor_size)) +
-  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  geom_boxplot(color = "blue", fill = alpha("blue", 0.5))+
   theme_minimal() +
   labs(
     title = "Tumor Size Distribution",
@@ -214,7 +214,7 @@ plot12progesterone
 plot13nodeexamined = 
   breastcancer_data|>
   ggplot(aes(x = regional_node_examined)) +
-  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  geom_boxplot(color = "blue", fill = alpha("blue", 0.5))+
   theme_minimal() +
   labs(
     title = "Regional Node Examined Distribution",
@@ -229,7 +229,7 @@ plot13nodeexamined
 plot14nodepositive = 
   breastcancer_data|>
   ggplot(aes(x = reginol_node_positive)) +
-  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  geom_boxplot(color = "blue", fill = alpha("blue", 0.5))+
   theme_minimal() +
   labs(
     title = "Regional Node Positive Distribution",
