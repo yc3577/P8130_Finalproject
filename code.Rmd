@@ -330,7 +330,7 @@ grid.arrange(plot1age, plot10tumorsize, plot13nodeexamined,
              plot14nodepositive, plot15survivalmonths, ncol = 2)
 ```
 
-We van see that age is approximately normal, while tumor size, regional node examined, regional node positive and survival months are skewed. We should do transforamtion on these four variables.
+We can see that age is approximately normal, while tumor size, regional node examined, regional node positive and survival months are skewed. We should do transformation on these four variables.
 
 ```{r categorical variables}
 grid.arrange(plot2race, plot3marital,plot4tstage, 
@@ -350,11 +350,44 @@ hist(log(bc$survival_months))
 
 We can see that tumor size and regional node examined become approximately normal after log transformation, while the other two still extremely skewed.
 
+### Transformation model
+
+```{r transformation on numeric}
+newbc = bc |>
+  mutate(ln_tumor=log(tumor_size),
+         ln_examined=log(regional_node_examined)) |>
+  dplyr::select(-tumor_size) |>
+  dplyr::select(-regional_node_examined)
+newbc
+```
+
 ## Indicator Test
 
-```{r Indicator Test}
+```{r}
+# indicator test when y is status
+categorical_vars <- c("race", "marital_status", "t_stage", "n_stage", "x6th_stage", 
+                       "differentiate", "grade", "a_stage", 
+                       "estrogen_status", "progesterone_status")
 
+newbc[categorical_vars] <- lapply(newbc[categorical_vars], factor)
+
+formula <- as.formula("status ~ race + marital_status + t_stage + n_stage + x6th_stage + 
+                       differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + ln_examined+ reginol_node_positive+ age")
+
+model <- glm(formula, data = newbc, family = binomial())
+
+summary(model)
 ```
+```{r}
+# indicator test when y is Survival Months
+formula1 <- as.formula("survival_months ~ race + marital_status + t_stage + n_stage + x6th_stage + 
+                       differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + ln_examined+ reginol_node_positive+ age")
+
+model1 <- lm(formula1, data = newbc)
+
+summary(model1)
+```
+
 
 ## Model Fitting
 
@@ -376,16 +409,7 @@ par(mfrow=c(2,2))
 plot(glmfit)
 ```
 
-### Transformation model
 
-```{r transformation on numeric}
-newbc = bc |>
-  mutate(ln_tumor=log(tumor_size),
-         ln_examined=log(regional_node_examined)) |>
-  dplyr::select(-tumor_size) |>
-  dplyr::select(-regional_node_examined)
-newbc
-```
 
 ```{r new glm}
 newglmfit=glm(status ~ ., data = newbc)
