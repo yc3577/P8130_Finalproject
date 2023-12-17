@@ -331,7 +331,7 @@ plot15survivalmonths
 plot16status = 
   bc|>
   ggplot(aes(x = status)) +
-  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
   theme_minimal() +
   labs(
     title = "status",
@@ -367,40 +367,40 @@ bc_transform_regionalnode_examined <- boxcox(breastcancer_data$regional_node_exa
 bc_transform_regionalnode_pos <- boxcox(breastcancer_data$reginol_node_positive ~ 1, lambda = seq(-2, 2, by=0.1))
 ```
 
-The lambda value of tumor size, regional node examined, and regional node positive are all close to 0. Therefore, we should use log transformation of those three variables.
+The lambda value of tumor size is close to 0, so we should use log transformation, while the lambda value of regional node examined is around 0.5, we should take a square root to the value, and the lambda value of regional node positive is around -0.5, so we should take a take sqaure root and take an (-1) exponent for transformation. 
 
-```{r log transformation on numeric}
+```{r transformation on numeric}
 par(mfrow = c(2, 2)) 
 hist(log(bc$tumor_size)) 
-hist(log(bc$regional_node_examined)) 
-hist(log(bc$reginol_node_positive))
+hist(sqrt(bc$regional_node_examined)) 
+hist(bc$reginol_node_positive**(-0.5))
 ```
 
-We can see that tumor size and regional node examined become approximately normal after log transformation, while the other one still extremely skewed.
+We can see that tumor size and regional node examined become approximately normal after log transformation, while the other one still extremely skewed. Therefore, we may consider not using the variable of reginol_node_positive. 
 
 
 
 
 ### Transformation model
 
-```{r transformation on numeric Y}
+```{r}
 newbc1 = bc |>
   mutate(ln_tumor=log(tumor_size),
-         ln_examined=log(regional_node_examined)) |>
+         sqrt_examined=sqrt(regional_node_examined)) |>
   dplyr::select(-tumor_size) |>
   dplyr::select(-regional_node_examined) |>
   dplyr::select(-status)
 newbc1
 ```
 
-```{r transformation on binary Y}
+```{r}
 newbc2 = bc |>
   mutate(ln_tumor=log(tumor_size),
-         ln_examined=log(regional_node_examined)) |>
+         sqrt_examined=sqrt(regional_node_examined)) |>
   dplyr::select(-tumor_size) |>
   dplyr::select(-regional_node_examined) |>
   dplyr::select(-survival_months)
-newbc1
+newbc2
 ```
 
 ## Indicator Test
@@ -414,20 +414,20 @@ categorical_vars <- c("race", "marital_status", "t_stage", "n_stage", "x6th_stag
 newbc2[categorical_vars] <- lapply(newbc2[categorical_vars], factor)
 
 formula <- as.formula("status ~ race + marital_status + t_stage + n_stage + x6th_stage + 
-                       differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + ln_examined+ reginol_node_positive+ age")
+                       differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + sqrt_examined+ reginol_node_positive+ age")
 
 model <- glm(formula, data = newbc2, family = binomial())
 
 summary(model)
 ```
-Based on the above indicator test summary, we delete grade and x6th_stage because their output was NA in the output linear model.  
+Based on the above indicator test summary, we delete grade and x6th_stage because their output was NA in the output linear model, since NA indicates these predicts may contribute colinearity. 
 
 
 
 ```{r}
 # indicator test when y is Survival Months
 formula1 <- as.formula("survival_months ~ race + marital_status + t_stage + n_stage + x6th_stage + 
-                       differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + ln_examined+ reginol_node_positive+ age")
+                       differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + sqrt_examined+  age")
 
 model1 <- lm(formula1, data = newbc1)
 
@@ -454,10 +454,134 @@ summary(glmfit)
 par(mfrow=c(2,2))
 plot(glmfit)
 ```
-3.0 transformation
-3.1 interaction transformation 
+## Partial Test 
+
+### Partial test for numeric Y
+
+```{r global test on numeric Y}
+# Our 1st global model for the predicts without colinearity and not normal predicts
+
+model_global_num = lm(survival_months ~ race + marital_status + t_stage + n_stage + 
+                       differentiate + a_stage + estrogen_status + progesterone_status+ln_tumor + sqrt_examined+age, newbc1)
+
+summary(model_global_num)
+
+
+```
+From the summary of the global model, we can see that from the P-value of race, t_stage, differentiate, a_stage,  progesterone_status, ln_tumor, sqrt_examined, and age all have the p-value above 0.05 which is not significant. While sqrt_examined have a 0.0559 p-value which is a close call, so we may consider keep it. Since the covariates like marital_status, n_stage, estrogen_status have a P-value smaller than 0.05 indicating significance. Therefore, our 1st partial test may include the significant covariates. 
+
+```{r partial test on numeric Y}
+
+# 1st numeric partial test with all significant covariates
+nummodel_partial_1 = lm(survival_months ~ marital_status + n_stage + estrogen_status + sqrt_examined, newbc1)
+
+summary(nummodel_partial_1)
+
+# 2nd numeric partial test with all in-significant covariates
+nummodel_partial_2 = lm(survival_months ~ race + t_stage + differentiate + a_stage + progesterone_status + ln_tumor + age, newbc1)
+
+summary(nummodel_partial_2)
+
+# 3rd numeric partial test with some significant in 2nd test added 
+nummodel_partial_3 = lm(survival_months ~ marital_status + n_stage + estrogen_status + sqrt_examined + a_stage + progesterone_status + ln_tumor, newbc1)
+
+summary(nummodel_partial_3)
+
+```
+- Our 1st partial test only include the significant predicts on global test, and then we also did a second partial test includes all the covariates that are non significant, and we can see the 1st partial model has an adjusted R-squared of 0.03419 which is slightly lower than the global test with the same RSE to global test indicating a slightly underfitting. While the second model with all the non signifcant covraites only get an adjusted R-squared of 0.01859 which is much lower than the global test with a higher RSE, so we will definitely not use the model 2 combination. However, we do discover some covariates are significant on the second model like n_stage, and progesterone_status, so we include these 3 again onto the 1st model to get our 3rd model. Fortunately, our 3rd model has a highest adjusted R-squared value of 0.03714 and a lower RSE. 
+
+### Partial Test for binary Y
+
+```{r global test on binary Y}
+# Our 1st global model for the predicts without colinearity and not normal predicts
+model_global_bin = lm(status ~ race + marital_status + t_stage + n_stage + x6th_stage + 
+                       differentiate + grade + a_stage + estrogen_status + progesterone_status + ln_tumor + sqrt_examined + age, newbc2)
+
+summary(model_global_bin)
+
+```
+From the summary of the global model, we can see that from the P-value of race, x6th_stage, differentiate, a_stage, ln_tumor have the p-value above 0.05 which is not significant. While differentiate has a 0.053247 p-value which is a close call, we may consider keep it. Since the covariates like marital_status, t_stage, n_stage, grade, estrogen_status, progesterone_status, sqrt_examined, age have a P-value smaller than 0.05 indicating significance. Therefore, our 1st partial test may include the significant covariates. 
+
+
+```{r partial test on binary Y}
+
+# 1st binary partial test with all significant covariates
+binmodel_partial_1 = lm(status ~ marital_status + t_stage + n_stage + differentiate + grade + estrogen_status + progesterone_status + sqrt_examined + age, newbc2)
+
+summary(binmodel_partial_1)
+
+# 2nd binary partial test with all in-significant covariates
+binmodel_partial_2 = lm(status ~ race + x6th_stage + a_stage + ln_tumor, newbc2)
+
+summary(binmodel_partial_2)
+
+# 3rd binary partial test with some significant in 2nd test added 
+binmodel_partial_3 = lm(status ~ marital_status + t_stage + n_stage + differentiate + grade + estrogen_status + progesterone_status + sqrt_examined + age + a_stage + ln_tumor, newbc2)
+
+summary(binmodel_partial_3)
+
+```
+- Our 1st partial test only include the significant predicts on global test, and then we also did a second partial test includes all the covariates that are non significant, and we can see the 1st partial model has an adjusted R-squared of 0.1205 which equals that of the global test with the same RSE to global test. While the second model with all the non signifcant covraites only get an adjusted R-squared of 0.02442 which is much lower than the global test with a higher RSE, so we will definitely not use the model 2 combination. However, we do discover some covariates are significant on the second model like a_stage, and ln_tumor, so we include these 2 again into the 1st model to get our 3rd model. However, our 3rd model has a lower adjusted R-squared value of 0.1203 and a higher RSE, so we will continue to keep with global test or model 1.
+
+
+## Step-wise: forward/backward/AiC
+
+### Step-wise for numeric Y
+
+```{r backward elimination on numeric Y}
+numglobal_backward = stepAIC(model_global_num, direction = "backward")
+num1_backward = stepAIC(nummodel_partial_1, direction = "backward")
+num2_backward = stepAIC(nummodel_partial_2, direction = "backward")
+num3_backward = stepAIC(nummodel_partial_3, direction = "backward")
+```
+
+```{r forward selection on numeric Y}
+numglobal_backward = stepAIC(model_global_num, direction = "forward")
+num1_backward = stepAIC(nummodel_partial_1, direction = "forward")
+num2_backward = stepAIC(nummodel_partial_2, direction = "forward")
+num3_backward = stepAIC(nummodel_partial_3, direction = "forward")
+```
+```{r stepwise regression on numeric Y}
+numglobal_backward = stepAIC(model_global_num, direction = "both")
+num1_backward = stepAIC(nummodel_partial_1, direction = "both")
+num2_backward = stepAIC(nummodel_partial_2, direction = "both")
+num3_backward = stepAIC(nummodel_partial_3, direction = "both")
+```
+- Above all, we can see that from all the backward, forward, and stepwise selection, we have the same AIC get from the 4 numerical model, and the best combination with the lowest AIC of 25062.62 is the combination of progesterone_status, a_stage, sqrt_examined, marital_status, ln_tumor, estrogen_status n_stage 
+
+### Step-wise for binary Y
+
+```{r backward elimination on binary Y}
+binglobal_backward = stepAIC(model_global_bin, direction = "backward")
+bin1_backward = stepAIC(binmodel_partial_1, direction = "backward")
+bin2_backward = stepAIC(binmodel_partial_2, direction = "backward")
+bin3_backward = stepAIC(binmodel_partial_3, direction = "backward")
+```
+From the backward elimination, the best model with lowest AIC of -8726.68 is: status ~ marital_status + t_stage + n_stage + x6th_stage + differentiate + grade + estrogen_status + progesterone_status + sqrt_examined + age. 
+
+
+```{r forward selection on binary Y}
+binglobal_backward = stepAIC(model_global_bin, direction = "forward")
+bin1_backward = stepAIC(binmodel_partial_1, direction = "forward")
+bin2_backward = stepAIC(binmodel_partial_2, direction = "forward")
+bin3_backward = stepAIC(binmodel_partial_3, direction = "forward")
+```
+From the forward selection, the best model with lowest AIC of -8726.53 which is higher than that in backward elimination, so we will use the backward elimination model. 
+
+```{r stepwise regression on binary numeric Y}
+binglobal_backward = stepAIC(model_global_bin, direction = "both")
+bin1_backward = stepAIC(binmodel_partial_1, direction = "both")
+bin2_backward = stepAIC(binmodel_partial_2, direction = "both")
+bin3_backward = stepAIC(binmodel_partial_3, direction = "both")
+```
+- From the stepwise regression, we have the lowest AIC of -8726.68 which is the model of status ~ marital_status + t_stage + n_stage + x6th_stage + differentiate + grade + estrogen_status + progesterone_status + sqrt_examined + age which is the same result from backward elimination, so we will deicde to use this model for further criterion procedure. 
+
+## Criterion procedures
+
+3.0 transformation edited
+3.1 interaction transformation ??
 3.2 partial test 
-3.3 diagnostic boxcox 
+3.3 diagnostic boxcox ??? 之前不是用过了boxcox
 4. Step-wise: forward/ backward /AIC 
 5. final model 
 6. model assumption (check multicolinearity (VIF))
