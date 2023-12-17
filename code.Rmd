@@ -359,6 +359,16 @@ grid.arrange(plot2race, plot3marital,plot4tstage,
 
 ## Transformation
 
+We know that the tumor size, regional node examined, and regional node positive are skewed. We should do transformation on these variables. Before the transformation, we can use the Box-Cox plot to check which transformation work the best for them.
+
+```{r boxcox}
+bc_transform_tumorsize <- boxcox(breastcancer_data$tumor_size ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_regionalnode_examined <- boxcox(breastcancer_data$regional_node_examined ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_regionalnode_pos <- boxcox(breastcancer_data$reginol_node_positive ~ 1, lambda = seq(-2, 2, by=0.1))
+```
+
+The lambda value of tumor size, regional node examined, and regional node positive are all close to 0. Therefore, we should use log transformation of those three variables.
+
 ```{r log transformation on numeric}
 par(mfrow = c(2, 2)) 
 hist(log(bc$tumor_size)) 
@@ -368,15 +378,8 @@ hist(log(bc$reginol_node_positive))
 
 We can see that tumor size and regional node examined become approximately normal after log transformation, while the other one still extremely skewed.
 
-We should do transformation on these four variables. Before the transformation, we can use the Box-Cox plot to check which transformation work the best for them.
 
-```{r boxcox}
-bc_transform_tumorsize <- boxcox(breastcancer_data$tumor_size ~ 1, lambda = seq(-2, 2, by=0.1))
-bc_transform_regionalnode_examined <- boxcox(breastcancer_data$regional_node_examined ~ 1, lambda = seq(-2, 2, by=0.1))
-bc_transform_regionalnode_pos <- boxcox(breastcancer_data$reginol_node_positive ~ 1, lambda = seq(-2, 2, by=0.1))
-bc_transform_survival_month <- boxcox(breastcancer_data$survival_months ~ 1, lambda = seq(-2, 2, by=0.1))
-```
-The lambda value of tumor size, regional node examined, and regional node positive are all close to 0. Therefore, we should use log transformation of those three variables. However, 
+
 
 ### Transformation model
 
@@ -417,7 +420,9 @@ model <- glm(formula, data = newbc2, family = binomial())
 
 summary(model)
 ```
-Based on the above indicator test summary, we delete grade and x6th_stage.
+Based on the above indicator test summary, we delete grade and x6th_stage because their output was NA in the output linear model.  
+
+
 
 ```{r}
 # indicator test when y is Survival Months
