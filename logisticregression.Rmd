@@ -504,10 +504,94 @@ summary(model_inter)
 
 
 
+## Step-wise: both direction/AiC
+
+
+### Step-wise for MLR without interaction term:
+
+```{r}
+# Full Model
+full_model <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
+                  a_stage + estrogen_status + progesterone_status + reginol_node_positive + 
+                  ln_tumor + sqrt_examined + age, 
+                  data = newbc, family = binomial)
+
+# Minimal Model (Intercept Only)
+min_model <- glm(status ~ 1, data = newbc, family = binomial)
+
+# Forward Selection
+forward_model <- step(min_model, scope = list(lower = min_model, upper = full_model), 
+                      direction = "forward", trace = FALSE)
+
+# Backward Elimination
+backward_model <- step(full_model, direction = "backward", trace = FALSE)
+
+# Both Directions
+stepwise_model <- step(min_model, scope = list(lower = min_model, upper = full_model), 
+                       direction = "both", trace = FALSE)
+
+# Print the summary of the chosen model
+summary(forward_model)
+# or summary(backward_model)
+# or summary(stepwise_model)
+
+```
+
+From the both direction step-wise, the best model without interaction term has lowest AIC of 2993.5 is: status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive
+
+
+### Step-wise for MLR with interaction term:
+
+```{r}
+
+# Full Model with Interaction Terms
+full_interaction_model <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
+               a_stage + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + 
+               sqrt_examined + age + 
+                race*(marital_status + progesterone_status + ln_tumor), 
+                              data = bc_ref, family = binomial)
+
+# Minimal Model (Intercept Only)
+min_model <- glm(status ~ 1, data = bc_ref, family = binomial)
+
+# Stepwise Selection (Forward, Backward, or Both)
+stepwise_interaction_model <- step(min_model, scope = list(lower = min_model, upper = full_interaction_model), 
+                                   direction = "both", trace = FALSE)
+
+# Print the summary of the chosen model
+summary(stepwise_interaction_model)
+```
+
+From the both direction step-wise, the best model with interaction term has lowest AIC of 2987.9 is: status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive + marital_status + progesterone_status:race + race:marital_status.
+
+
+
+
+
 ## Partial Test 
 
 ### Partial Test for binary Y
 
+```{r}
+# Model without Interaction Terms
+model_no_interaction <- glm(status ~ n_stage + progesterone_status + differentiate + t_stage + 
+                            age + race + estrogen_status + sqrt_examined + reginol_node_positive, 
+                            data = newbc, family = binomial)
+
+# Model with Selected Interaction Terms
+model_with_interaction <- glm(status ~ n_stage + progesterone_status + differentiate + t_stage + 
+                              age + race + estrogen_status + sqrt_examined + reginol_node_positive + 
+                              marital_status + progesterone_status:race + race:marital_status, 
+                              data = bc_ref, family = binomial)
+
+# Partial Test
+anova(model_no_interaction, model_with_interaction, test = "Chisq")
+
+```
+
+The p-value is  below the common alpha level of 0.05, indicating that the inclusion of interaction terms in the model significantly improves the fit compared to the model without interaction terms. This result supports selecting the model with interaction terms, as it provides a better explanation of the variation in the response variable (status).
+
+-------------can be deleted below----------------
 ```{r global test on binary Y}
 # Our 1st global model for the predicts without colinearity and not normal predicts
 model_global_bin = glm(status ~ race + marital_status + t_stage + n_stage + 
@@ -547,43 +631,8 @@ summary(model_inter)
 
 ```
 - Our 1st partial test only include the significant predicts on global test, and then we also did a second partial test includes all the covariates that are non significant, and we can see the 1st partial model has an AIC at 3016.9. While the second model with all the non signifcant covraites only get an AIC at 3357.7, which is higher than the first model, so we will definitely not use the model 2 combination. However, we do discover some covariates are significant on the second model like a_stage, and ln_tumor, so we include these 2 again into the 1st model to get our 3rd model. However, our 3rd model has a higher AIC at 3031.1 than model 1, so we will continue to keep with model 1. Comparing Model 1 with the model 4 with some interaction terms included in race, we get a smaller AIC in model 4. Therefore, we will choose model 4 in our next step.
+-------------can be deleted above----------------
 
-
-## Step-wise: forward/backward/AiC
-
-
-### Step-wise for binary Y
-
-```{r backward elimination on binary Y}
-binglobal_backward = stepAIC(model_global_bin, direction = "backward")
-bin1_backward = stepAIC(binmodel_partial_1, direction = "backward")
-bin2_backward = stepAIC(binmodel_partial_2, direction = "backward")
-bin3_backward = stepAIC(binmodel_partial_3, direction = "backward")
-bin4_backward = stepAIC(model_inter, direction = "backward")
-
-```
-From the backward elimination, the best model with lowest AIC of 2988.32 is: status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + sqrt_examined + age + race:marital_status + race:progesterone_status + race:ln_tumor.
-
-
-```{r forward selection on binary Y}
-binglobal_backward = stepAIC(model_global_bin, direction = "forward")
-bin1_backward = stepAIC(binmodel_partial_1, direction = "forward")
-bin2_backward = stepAIC(binmodel_partial_2, direction = "forward")
-bin3_backward = stepAIC(binmodel_partial_3, direction = "forward")
-bin4_backward = stepAIC(model_inter, direction = "forward")
-
-```
-From the forward selection, the best model with lowest AIC of 2990.34 status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + sqrt_examined + age + race:marital_status + race:progesterone_status + race:ln_tumor. Backward and forward elimination selection both produce the same model.
-
-```{r stepwise regression on binary numeric Y}
-binglobal_backward = stepAIC(model_global_bin, direction = "both")
-bin1_backward = stepAIC(binmodel_partial_1, direction = "both")
-bin2_backward = stepAIC(binmodel_partial_2, direction = "both")
-bin3_backward = stepAIC(binmodel_partial_3, direction = "both")
-bin4_backward = stepAIC(model_inter, direction = "both")
-```
-- From the stepwise regression, we have the lowest AIC of 3016.98 which is the model of status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + sqrt_examined + age + race:marital_status + race:progesterone_status + 
-race:ln_tumor. The model is the same compared to the one we picked from the backward elimination and forward elimination. We will go with this model for further statistical testing. 
 
 ## ANOVA
 
