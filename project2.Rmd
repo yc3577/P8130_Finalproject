@@ -82,3 +82,12 @@ plot(zph)
 ```
 
 A non-random pattern or a significant global test (p-value) can indicate violations of the assumption.
+
+### Identify Influential Observations
+
+```{r}
+martingale_res <- residuals(cox_model, type = "martingale")
+plot(martingale_res)
+```
+
+It seems there are few observations with large negative Martingale residuals, which could be potential outliers or influential observations. 
