@@ -503,7 +503,7 @@ summary(model_inter)
 ```{r global test on binary Y}
 # Our 1st global model for the predicts without colinearity and not normal predicts
 model_global_bin = glm(status ~ race + marital_status + t_stage + n_stage + 
-                       differentiate + a_stage +estrogen_status + progesterone_status + ln_tumor + sqrt_examined + age, family = binomial, newbc2)
+                       differentiate + a_stage +estrogen_status + progesterone_status + ln_tumor + sqrt_examined + age, family = binomial, newbc)
 
 summary(model_global_bin)
 
@@ -515,17 +515,17 @@ From the summary of the global model, we can see that from the P-value of a_stag
 
 # 1st binary partial test with all significant covariates
 # We will still keep marital_status because one group in this variable is significant
-binmodel_partial_1 = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age, family = binomial, newbc2)
+binmodel_partial_1 = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age, family = binomial, newbc)
 
 summary(binmodel_partial_1)
 
 # 2nd binary partial test with all in-significant covariates
-binmodel_partial_2 = glm(status ~ a_stage + ln_tumor, family = binomial, newbc2)
+binmodel_partial_2 = glm(status ~ a_stage + ln_tumor, family = binomial, newbc)
 
 summary(binmodel_partial_2)
 
 # 3rd binary partial test with some significant in 2nd test added 
-binmodel_partial_3 = glm(status ~ marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age + a_stage + ln_tumor, family = binomial, newbc2)
+binmodel_partial_3 = glm(status ~ marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age + a_stage + ln_tumor, family = binomial, newbc)
 
 summary(binmodel_partial_3)
 
@@ -567,14 +567,14 @@ bin3_backward = stepAIC(binmodel_partial_3, direction = "both")
 
 #### anova for binary Y
 ```{r}
-model2 <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age, data = newbc2)
+model2 <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age, data = newbc)
 anova_result1 <- anova(model2)
 print(anova_result1)
 summary(model2)
 ```
 
 ```{r}
-null_model <- glm(status ~ 1, family = binomial, data = newbc2)
+null_model <- glm(status ~ 1, family = binomial, data = newbc)
 
 anova(null_model, model2, test = "Chisq")
 ```
@@ -589,7 +589,7 @@ aic_selected_bin_model <- stepAIC(glmfit, direction = "both")
 summary(aic_selected_bin_model)
 
 # And the BIC criterion
-bic_selected_bin_model <- stepAIC(glmfit, direction = "both", family = binomial, k = log(nrow(newbc2)))
+bic_selected_bin_model <- stepAIC(glmfit, direction = "both", family = binomial, k = log(nrow(newbc)))
 summary(bic_selected_bin_model)
 
 
