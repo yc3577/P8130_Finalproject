@@ -85,7 +85,7 @@ A non-random pattern or a significant global test (p-value) can indicate violati
 
 ### Identify Influential Observations
 
-```{r}
+```{r martingale_res}
 martingale_res <- residuals(cox_model, type = "martingale")
 plot(martingale_res)
 ```
