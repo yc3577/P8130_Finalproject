@@ -16,6 +16,7 @@ library(MASS)
 library(car)
 library(dplyr)
 library(leaps)
+library(corrplot)
 ```
 
 ## Data Clean
@@ -99,6 +100,15 @@ plot(bc)
 cor(bc) |>
   knitr::kable(digits=4,caption="Correlation for all variables")
 ```
+
+### Another plot for correlation
+
+```{r plot for correlation}
+corrplot(cor(bc), method = "square", type = "upper", diag = FALSE)
+
+```
+
+
 
 ## Exploratory visualisation
 
@@ -609,8 +619,9 @@ lm_model <- lm(survival_months ~ marital_status + n_stage + estrogen_status +
 # Perform ANOVA
 anova_result <- anova(lm_model)
 print(anova_result)
-```
+``` 
 Based on ANOVA test, matial_status, n_stage, estrogen_status, and ln_tumors are significant variables.
+
 
 ```{r}
 # delete insignificant variables from the above anova table and fit a new model
@@ -683,6 +694,29 @@ In the binary model, the final model according to the AIC selection is status ~ 
 
 The BIC had the selection of model status ~ race + differentiate + estrogen_status + progesterone_status + ln_tumor + sqrt_examined + reginol_node_positive + age. 
 
+### Plots to check the model assumptions:
+
+```{r plots check model assumption}
+par(mfrow = c(3,4))
+plot(aic_selected_num_model)
+plot(bic_selected_num_model)
+plot(nummodel_partial_3)
+
+
+
+par(mfrow = c(3,4))
+plot(aic_selected_bin_model)
+plot(bic_selected_bin_model)
+plot(binmodel_partial_1)
+
+
+```
+
+
+### VIF
+```{r}
+
+```
 
 
 
