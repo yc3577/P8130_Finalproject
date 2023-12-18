@@ -1,0 +1,21 @@
+---
+title: "project1"
+date: "2023-12-18"
+output: pdf_document
+---
+
+## Libraries
+
+```{r library, message = FALSE}
+library(tidyverse)
+library(readr)
+library(boot)
+library(table1)
+library(gridExtra)
+library(MASS)
+library(car)
+library(dplyr)
+library(leaps)
+library(corrplot)
+```
+

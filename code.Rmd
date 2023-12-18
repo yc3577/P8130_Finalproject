@@ -1,7 +1,7 @@
 ---
 title: "Data analysis"
 date: "12/09/2023"
-output: html_document
+output: pdf_document
 ---
 
 ## Libraries
@@ -465,7 +465,7 @@ par(mfrow=c(2,2))
 plot(lmfit)
 ```
 
-```{r}
+```{r logistic}
 glmfit <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
                a_stage + estrogen_status + progesterone_status + ln_tumor + 
                sqrt_examined + reginol_node_positive + age, 
@@ -726,7 +726,7 @@ plot(binmodel_partial_1)
 3.0 transformation edited
 3.1 interaction transformation ??
 3.2 partial test 
-3.3 diagnostic boxcox ??? 之前不是用过了boxcox
+3.3 diagnostic boxcox
 4. Step-wise: forward/ backward /AIC 
 5. final model 
 6. model assumption (check multicolinearity (VIF))
