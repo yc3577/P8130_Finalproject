@@ -120,7 +120,7 @@ plot1age =
     x = "Age",
     y = "Frequency"
   )
-plot1age
+#plot1age
 ```
 
 ```{r race}
@@ -134,7 +134,7 @@ plot2race =
     x = "Race",
     y = "Frequency"
   )
-plot2race
+#plot2race
 ```
 
 ```{r marital}
@@ -149,7 +149,7 @@ plot3marital =
     y = "Frequency"
   )
 
-plot3marital
+#plot3marital
 ```
 
 
@@ -165,7 +165,7 @@ plot4tstage =
     y = "Frequency"
   )
 
-plot4tstage
+#plot4tstage
 ```
 
 
@@ -181,7 +181,7 @@ plot5nstage =
     y = "Frequency"
   )
 
-plot5nstage
+#plot5nstage
 ```
 
 ```{r x6thstage}
@@ -196,7 +196,7 @@ plot6x6thstage =
     y = "Frequency"
   )
 
-plot6x6thstage
+#plot6x6thstage
 ```
 
 ```{r differentate}
@@ -211,7 +211,7 @@ plot7differentate =
     y = "Frequency"
   )
 
-plot7differentate
+#plot7differentate
 ```
 
 ```{r grade}
@@ -226,7 +226,7 @@ plot8grade =
     y = "Frequency"
   )
 
-plot8grade
+#plot8grade
 ```
 
 ```{r astage}
@@ -241,7 +241,7 @@ plot9astage =
     y = "Frequency"
   )
 
-plot9astage
+#plot9astage
 ```
 
 
@@ -257,7 +257,7 @@ plot10tumorsize =
     y = "Frequency"
   )
 
-plot10tumorsize
+#plot10tumorsize
 ```
 
 ```{r estrogen}
@@ -272,7 +272,7 @@ plot11estrogen =
     y = "Frequency"
   )
 
-plot11estrogen
+#plot11estrogen
 ```
 
 ```{r progesterone}
@@ -287,7 +287,7 @@ plot12progesterone =
     y = "Frequency"
   )
 
-plot12progesterone
+#plot12progesterone
 ```
 
 
@@ -303,7 +303,7 @@ plot13nodeexamined =
     y = "Frequency"
   )
 
-plot13nodeexamined
+#plot13nodeexamined
 ```
 
 ```{r nodepositive}
@@ -318,7 +318,7 @@ plot14nodepositive =
     y = "Frequency"
   )
 
-plot14nodepositive
+#plot14nodepositive
 ```
 
 Y1 = survive months; (numeric)
@@ -355,7 +355,7 @@ plot16status =
 plot16status
 ```
 
-### Summarized plots
+### Summarized plots for covariates
 
 ```{r numeric variables}
 grid.arrange(plot1age, plot10tumorsize, plot13nodeexamined, 
@@ -437,6 +437,7 @@ summary(glmfit)
 par(mfrow = c(2, 2))
 plot(glmfit)
 ```
+
 ## Indicator Variables categorize by Race
 
 ```{r race categorize}
@@ -466,8 +467,11 @@ model_ref = glm(status ~ race + marital_status + t_stage + n_stage + differentia
                a_stage + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + 
                sqrt_examined + age, 
                data = bc_ref, family = binomial)
-model_ref
+#model_ref
 summary(model_ref)
+```
+
+```{r}
 
 ## Run a MLR with race ref and with interaction terms
 model_refinter = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
@@ -477,16 +481,20 @@ model_refinter = glm(status ~ race + marital_status + t_stage + n_stage + differ
                a_stage + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + 
                sqrt_examined + age), 
                data = bc_ref, family = binomial)
-model_refinter
+#model_refinter
 summary(model_refinter)
 
+
+```
+
+```{r}
 ## Run a MLR with race ref and with interaction terms selected
 model_inter = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
                a_stage + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + 
                sqrt_examined + age + 
                 race*(marital_status + progesterone_status + ln_tumor),
                data = bc_ref, family = binomial)
-model_inter
+#model_inter
 summary(model_inter)
 ```
 - From the SRL for single race variable, we can see that the race group of black has a P-value of 6.95*10^(-6) and other race group has a P-value of 0.0257 both smaller than 0.05, so there are statistically significant difference between that to the reference of group white. 
@@ -529,8 +537,16 @@ binmodel_partial_3 = glm(status ~ marital_status + t_stage + n_stage + different
 
 summary(binmodel_partial_3)
 
+# 4rd binary partial test with some selected interaction terms
+model_inter = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
+               a_stage + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + 
+               sqrt_examined + age +  race*(marital_status + progesterone_status + ln_tumor),
+               data = bc_ref, family = binomial)
+
+summary(model_inter)
+
 ```
-- Our 1st partial test only include the significant predicts on global test, and then we also did a second partial test includes all the covariates that are non significant, and we can see the 1st partial model has an AIC at 3016.9. While the second model with all the non signifcant covraites only get an AIC at 3357.7, which is higher than the first model, so we will definitely not use the model 2 combination. However, we do discover some covariates are significant on the second model like a_stage, and ln_tumor, so we include these 2 again into the 1st model to get our 3rd model. However, our 3rd model has a higher AIC at 3031.1 than model 1, so we will continue to keep with model 1.
+- Our 1st partial test only include the significant predicts on global test, and then we also did a second partial test includes all the covariates that are non significant, and we can see the 1st partial model has an AIC at 3016.9. While the second model with all the non signifcant covraites only get an AIC at 3357.7, which is higher than the first model, so we will definitely not use the model 2 combination. However, we do discover some covariates are significant on the second model like a_stage, and ln_tumor, so we include these 2 again into the 1st model to get our 3rd model. However, our 3rd model has a higher AIC at 3031.1 than model 1, so we will continue to keep with model 1. Comparing Model 1 with the model 4 with some interaction terms included in race, we get a smaller AIC in model 4. Therefore, we will choose model 4 in our next step.
 
 
 ## Step-wise: forward/backward/AiC
@@ -543,8 +559,10 @@ binglobal_backward = stepAIC(model_global_bin, direction = "backward")
 bin1_backward = stepAIC(binmodel_partial_1, direction = "backward")
 bin2_backward = stepAIC(binmodel_partial_2, direction = "backward")
 bin3_backward = stepAIC(binmodel_partial_3, direction = "backward")
+bin4_backward = stepAIC(model_inter, direction = "backward")
+
 ```
-From the backward elimination, the best model with lowest AIC of 3016.87 is: status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age.
+From the backward elimination, the best model with lowest AIC of 2988.32 is: status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + sqrt_examined + age + race:marital_status + race:progesterone_status + race:ln_tumor.
 
 
 ```{r forward selection on binary Y}
@@ -552,16 +570,20 @@ binglobal_backward = stepAIC(model_global_bin, direction = "forward")
 bin1_backward = stepAIC(binmodel_partial_1, direction = "forward")
 bin2_backward = stepAIC(binmodel_partial_2, direction = "forward")
 bin3_backward = stepAIC(binmodel_partial_3, direction = "forward")
+bin4_backward = stepAIC(model_inter, direction = "forward")
+
 ```
-From the forward selection, the best model with lowest AIC of 3016.87 status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status  + sqrt_examined + age. Backward and forward elimination selection both produce same AIC value and the models are the same.
+From the forward selection, the best model with lowest AIC of 2990.34 status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + sqrt_examined + age + race:marital_status + race:progesterone_status + race:ln_tumor. Backward and forward elimination selection both produce the same model.
 
 ```{r stepwise regression on binary numeric Y}
 binglobal_backward = stepAIC(model_global_bin, direction = "both")
 bin1_backward = stepAIC(binmodel_partial_1, direction = "both")
 bin2_backward = stepAIC(binmodel_partial_2, direction = "both")
 bin3_backward = stepAIC(binmodel_partial_3, direction = "both")
+bin4_backward = stepAIC(model_inter, direction = "both")
 ```
-- From the stepwise regression, we have the lowest AIC of 3016.98 which is the model of status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age. The model is the same compared to the one we picked from the backward elimination and forward elimination. We will go with this model for further statistical testing. 
+- From the stepwise regression, we have the lowest AIC of 3016.98 which is the model of status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + sqrt_examined + age + race:marital_status + race:progesterone_status + 
+race:ln_tumor. The model is the same compared to the one we picked from the backward elimination and forward elimination. We will go with this model for further statistical testing. 
 
 ## ANOVA
 
@@ -583,20 +605,31 @@ With p significant p value, we have enough evidence to show that the full model 
 
 ## Criterion procedures
 
+
+
 ```{r}
-# For the binary outcome, we will use the AIC criterion as well
-aic_selected_bin_model <- stepAIC(glmfit, direction = "both")
+aic_selected_bin_model <- stepAIC(model_inter, direction = "both")
 summary(aic_selected_bin_model)
 
-# And the BIC criterion
-bic_selected_bin_model <- stepAIC(glmfit, direction = "both", family = binomial, k = log(nrow(newbc)))
+bic_selected_bin_model <- stepAIC(model_inter, direction = "both", family = binomial, k = log(nrow(bc_ref)))
 summary(bic_selected_bin_model)
 
 
-```
-In the binary model, the final model according to the AIC selection is status ~ race + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + reginol_node_positive + age. 
+bic_selected_model <- stepAIC(bic_selected_bin_model, direction = "backward")
 
-The BIC had the selection of model status ~ race + differentiate + estrogen_status + progesterone_status + ln_tumor + sqrt_examined + reginol_node_positive + age. 
+```
+
+```{r}
+bic_selected_model <- stepAIC(bic_selected_bin_model, direction = "backward")
+
+
+```
+
+
+In the interaction model, the AIC selected model is status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + sqrt_examined + age + race:marital_status + race:progesterone_status + race:ln_tumor.
+
+The BIC selected model is status ~ race + differentiate + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + sqrt_examined + age.
+
 
 ### Plots to check the model assumptions:
 
@@ -614,6 +647,13 @@ plot(binmodel_partial_1)
 
 ### VIF
 ```{r}
+# Calculate VIF for the model selected by AIC
+vif_result_aic <- vif(aic_selected_bin_model, type = 'predictor')
+print(vif_result_aic)
+
+# Calculate VIF for the model selected by BIC
+vif_result_bic <- vif(bic_selected_bin_model)
+print(vif_result_bic)
 
 ```
 
