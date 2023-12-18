@@ -1,0 +1,635 @@
+---
+title: "Data analysis"
+date: "12/09/2023"
+output: pdf_document
+---
+
+## Libraries
+
+```{r library, message = FALSE}
+library(tidyverse)
+library(readr)
+library(boot)
+library(table1)
+library(gridExtra)
+library(MASS)
+library(car)
+library(dplyr)
+library(leaps)
+library(corrplot)
+```
+
+## Data Clean
+
+```{r data load}
+breastcancer_data =
+  read_csv("Project_2_data.csv") |>
+  janitor::clean_names()
+  
+summary(breastcancer_data)
+```
+
+```{r data clean}
+bc = breastcancer_data |>
+  mutate(
+    race=case_when(
+      race == "White" ~ 1,
+      race == "Black" ~ 2,
+      race == "Other" ~ 3),
+    marital_status=case_when(
+      marital_status == "Married" ~ 1,
+      marital_status == "Divorced" ~ 2,
+      marital_status == "Single" ~ 3,
+      marital_status == "Widowed" ~ 4,
+      marital_status == "Separated" ~ 5),
+    t_stage=case_when(
+      t_stage == "T1" ~ 1,
+      t_stage == "T2" ~ 2,
+      t_stage == "T3" ~ 3,
+      t_stage == "T4" ~ 4),
+    n_stage=case_when(
+      n_stage == "N1" ~ 1,
+      n_stage == "N2" ~ 2,
+      n_stage == "N3" ~ 3),
+    x6th_stage=case_when(
+      x6th_stage == "IIA" ~ 1,
+      x6th_stage == "IIIA" ~ 2,
+      x6th_stage == "IIIC" ~ 3,
+      x6th_stage == "IIB" ~ 4,
+      x6th_stage == "IIIB" ~ 5),
+    differentiate=case_when(
+      differentiate == "Poorly differentiated" ~ 1,
+      differentiate == "Moderately differentiated" ~ 2,
+      differentiate == "Well differentiated" ~ 3,
+      differentiate == "Undifferentiated" ~ 4),
+    grade=case_when(
+      grade == "1" ~ 1,
+      grade == "2" ~ 2,
+      grade == "3" ~ 3,
+      grade == "anaplastic; Grade IV" ~ 4),
+    a_stage=case_when(
+      a_stage == "Regional" ~ 1,
+      a_stage == "Distant" ~ 0),
+    estrogen_status=case_when(
+      estrogen_status == "Positive" ~ 1,
+      estrogen_status == "Negative" ~ 0),
+    progesterone_status=case_when(
+      progesterone_status == "Positive" ~ 1,
+      progesterone_status == "Negative" ~ 0),
+    status=case_when(
+      status == "Alive" ~ 1,
+      status == "Dead" ~ 0)
+    ) 
+```
+
+## Descriptive statistics for all variables
+
+```{r Descriptive statistics}
+summary(bc)
+```
+We change race, marital_status, t_stage, n_stage, x6th_stage, differentiate, and grade into multiple numeric levels, while a_stage, estrogen_status, progesterone_status, and status to binary levels. The above variables are categorical variables.
+
+And age, tumor_size, regional_node_examined, reginol_node_positive, and survival_months are numeric variables.
+
+## Covariance and Correlation
+
+```{r correlation}
+plot(bc)
+
+cor(bc) |>
+  knitr::kable(digits=4,caption="Correlation for all variables")
+```
+
+### Another plot for correlation
+
+```{r plot for correlation}
+corrplot(cor(bc), method = "square", type = "upper", diag = FALSE)
+
+```
+
+## Exploratory visualisation
+
+```{r age}
+plot1age = 
+  breastcancer_data|>
+  ggplot(aes(x = age)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5), binwidth = 5) +
+  theme_minimal() +
+  labs(
+    title = "Age Distribution",
+    x = "Age",
+    y = "Frequency"
+  )
+plot1age
+```
+
+```{r race}
+plot2race = 
+  breastcancer_data|>
+  ggplot(aes(x = race)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Race Distribution",
+    x = "Race",
+    y = "Frequency"
+  )
+plot2race
+```
+
+```{r marital}
+plot3marital = 
+  breastcancer_data|>
+  ggplot(aes(x = marital_status)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Marital Status Distribution",
+    x = "Marital Status",
+    y = "Frequency"
+  )
+
+plot3marital
+```
+
+
+```{r tstage}
+plot4tstage = 
+  breastcancer_data|>
+  ggplot(aes(x = t_stage)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "T Stage Distribution",
+    x = "T Stage",
+    y = "Frequency"
+  )
+
+plot4tstage
+```
+
+
+```{r nstage}
+plot5nstage = 
+  breastcancer_data|>
+  ggplot(aes(x = n_stage)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "N Stage Distribution",
+    x = "N Stage",
+    y = "Frequency"
+  )
+
+plot5nstage
+```
+
+```{r x6thstage}
+plot6x6thstage = 
+  breastcancer_data|>
+  ggplot(aes(x = x6th_stage)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "x6th Stage Distribution",
+    x = "x6th Stage",
+    y = "Frequency"
+  )
+
+plot6x6thstage
+```
+
+```{r differentate}
+plot7differentate = 
+  breastcancer_data|>
+  ggplot(aes(x = differentiate)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Differentate Distribution",
+    x = "Differentate Group",
+    y = "Frequency"
+  )
+
+plot7differentate
+```
+
+```{r grade}
+plot8grade = 
+  breastcancer_data|>
+  ggplot(aes(x = grade)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Grade Distribution",
+    x = "Grade",
+    y = "Frequency"
+  )
+
+plot8grade
+```
+
+```{r astage}
+plot9astage = 
+  breastcancer_data|>
+  ggplot(aes(x = a_stage)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "A_stage Distribution",
+    x = "A Stage",
+    y = "Frequency"
+  )
+
+plot9astage
+```
+
+
+```{r tumorsize}
+plot10tumorsize = 
+  breastcancer_data|>
+  ggplot(aes(x = tumor_size)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Tumor Size Distribution",
+    x = "Tumor Size",
+    y = "Frequency"
+  )
+
+plot10tumorsize
+```
+
+```{r estrogen}
+plot11estrogen = 
+  breastcancer_data|>
+  ggplot(aes(x = estrogen_status)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Estrogen Status Distribution",
+    x = "Estrogen Status",
+    y = "Frequency"
+  )
+
+plot11estrogen
+```
+
+```{r progesterone}
+plot12progesterone = 
+  breastcancer_data|>
+  ggplot(aes(x = progesterone_status)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Progesterone Status Distribution",
+    x = "Progesterone Status",
+    y = "Frequency"
+  )
+
+plot12progesterone
+```
+
+
+```{r nodeexamined}
+plot13nodeexamined = 
+  breastcancer_data|>
+  ggplot(aes(x = regional_node_examined)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Regional Node Examined Distribution",
+    x = "Examined Regional Node",
+    y = "Frequency"
+  )
+
+plot13nodeexamined
+```
+
+```{r nodepositive}
+plot14nodepositive = 
+  breastcancer_data|>
+  ggplot(aes(x = reginol_node_positive)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Regional Node Positive Distribution",
+    x = "Positive Reginol Node",
+    y = "Frequency"
+  )
+
+plot14nodepositive
+```
+
+Y1 = survive months; (numeric)
+
+Y2 = status; (binary)
+
+```{r survive months}
+plot15survivalmonths = 
+  breastcancer_data|>
+  ggplot(aes(x = survival_months)) +
+  geom_histogram(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "Survival Months",
+    x = "Number of survival months",
+    y = "Frequency"
+  )
+
+plot15survivalmonths
+```
+
+```{r status}
+plot16status = 
+  bc|>
+  ggplot(aes(x = status)) +
+  geom_bar(color = "blue", fill = alpha("blue", 0.5))+
+  theme_minimal() +
+  labs(
+    title = "status",
+    x = "status",
+    y = "Frequency"
+  )
+
+plot16status
+```
+
+### Summarized plots
+
+```{r numeric variables}
+grid.arrange(plot1age, plot10tumorsize, plot13nodeexamined, 
+             plot14nodepositive, ncol = 2)
+```
+
+We can see that age is approximately normal, while tumor size, regional node examined, and regional node positive are skewed. 
+
+```{r categorical variables}
+grid.arrange(plot2race, plot3marital,plot4tstage, 
+             plot5nstage, plot6x6thstage,plot7differentate,
+             plot8grade,plot9astage,plot11estrogen,plot12progesterone, ncol = 3)
+```
+
+## Transformation
+
+We know that the tumor size, regional node examined, and regional node positive are skewed. We should do transformation on these variables. Before the transformation, we can use the Box-Cox plot to check which transformation work the best for them.
+
+```{r boxcox}
+bc_transform_tumorsize <- boxcox(breastcancer_data$tumor_size ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_regionalnode_examined <- boxcox(breastcancer_data$regional_node_examined ~ 1, lambda = seq(-2, 2, by=0.1))
+bc_transform_regionalnode_pos <- boxcox(breastcancer_data$reginol_node_positive ~ 1, lambda = seq(-2, 2, by=0.1))
+```
+
+The lambda value of tumor size is close to 0, so we should use log transformation, while the lambda value of regional node examined is around 0.5, we should take a square root to the value, and the lambda value of regional node positive is around -0.5, so we should take a take square root and take an (-1) exponent for transformation. 
+
+```{r transformation on numeric}
+par(mfrow = c(2, 2)) 
+hist(log(bc$tumor_size)) 
+hist(sqrt(bc$regional_node_examined)) 
+hist(bc$reginol_node_positive**(-0.5))
+```
+
+We can see that tumor size and regional node examined become approximately normal after log transformation, while the regional node positive is still extremely skewed. Therefore, we may consider not using the variable of reginol_node_positive. 
+
+### Transformation model
+
+```{r}
+newbc = bc |>
+  mutate(ln_tumor=log(tumor_size),
+         sqrt_examined=sqrt(regional_node_examined)) |>
+  dplyr::select(-tumor_size) |>
+  dplyr::select(-regional_node_examined) |>
+  dplyr::select(-survival_months)
+newbc
+```
+
+## Indicator Test
+
+### When y is status
+
+```{r}
+# indicator test when y is status
+categorical_vars <- c("race", "marital_status", "t_stage", "n_stage", "x6th_stage", 
+                       "differentiate", "grade", "a_stage", 
+                       "estrogen_status", "progesterone_status")
+
+newbc[categorical_vars] <- lapply(newbc[categorical_vars], factor)
+
+formula <- as.formula("status ~ race + marital_status + t_stage + n_stage + x6th_stage + 
+                       differentiate + grade + a_stage + estrogen_status + progesterone_status+ln_tumor + sqrt_examined+ reginol_node_positive+ age")
+
+model <- glm(formula, data = newbc, family = binomial())
+
+summary(model)
+```
+Based on the above indicator test summary, we delete grade and x6th_stage because their output was NA in the output linear model, since NA indicates these predicts may contribute collinearity. 
+
+## Model Fitting
+
+### Initial Model
+
+```{r}
+glmfit <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
+               a_stage + estrogen_status + progesterone_status + ln_tumor + 
+               sqrt_examined + reginol_node_positive + age, 
+               data = newbc, family = binomial)
+summary(glmfit)
+par(mfrow = c(2, 2))
+plot(glmfit)
+```
+## Indicator Variables categorize by Race
+
+```{r race categorize}
+# According to our data formating in the upper procedure, in Race: 
+# 1 represents "white" 
+# 2 represents "black"
+# 3 represents "others"
+## A newdataset with "white" as reference
+bc_ref =
+  newbc |>
+  mutate(
+     race= relevel(
+       race, ref = 1
+     )
+     )
+
+bc_ref
+
+## Run a SLR for race only
+single_race = glm(status ~ race, family = binomial, bc_ref)
+
+summary(single_race)
+
+
+## Run a MLR with race ref but without interaction terms
+model_ref = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
+               a_stage + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + 
+               sqrt_examined + age, 
+               data = bc_ref, family = binomial)
+model_ref
+summary(model_ref)
+
+## Run a MLR with race ref and with interaction terms
+model_refinter = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
+               a_stage + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + 
+               sqrt_examined + age + 
+                race*(marital_status + t_stage + n_stage + differentiate + 
+               a_stage + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + 
+               sqrt_examined + age), 
+               data = bc_ref, family = binomial)
+model_refinter
+summary(model_refinter)
+
+## Run a MLR with race ref and with interaction terms selected
+model_inter = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
+               a_stage + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + 
+               sqrt_examined + age + 
+                race*(marital_status + progesterone_status + ln_tumor),
+               data = bc_ref, family = binomial)
+model_inter
+summary(model_inter)
+```
+- From the SRL for single race variable, we can see that the race group of black has a P-value of 6.95*10^(-6) and other race group has a P-value of 0.0257 both smaller than 0.05, so there are statistically significant difference between that to the reference of group white. 
+- From the MRL model without interaction terms, we can see that the AIC is around 2997.4 which is smaller than the original full model, when for both race2 and race3 we have a P-value smaller than 0.05 indicating significance, so we considering adding interaction terms.
+- From the MRL model with race interaction terms added, we can see that the AIC is around 3016 which is getting larger, so we may have too many unnecessary interaction terms, and from the P-values we can see most the interaction covariates are insignificant except some terms in: race:marital_status, race:progesterone_status, race:ln_tumor.
+- Therefore, we have the 3rd MRL model with race interaction terms selected, and we get a model with AIC of 2990.3 dropped sharply and the interaction term is included. 
+
+
+
+## Partial Test 
+
+### Partial Test for binary Y
+
+```{r global test on binary Y}
+# Our 1st global model for the predicts without colinearity and not normal predicts
+model_global_bin = glm(status ~ race + marital_status + t_stage + n_stage + 
+                       differentiate + a_stage +estrogen_status + progesterone_status + ln_tumor + sqrt_examined + age, family = binomial, newbc2)
+
+summary(model_global_bin)
+
+```
+From the summary of the global model, we can see that from the P-value of a_stage, ln_tumor, marital_status(2, 3, 4) have the p-value above 0.05 which is not significant. While differentiate has a 0.0729 p-value, and t_stage3 has a p-value of 0.0909, we may consider keep them. The covariates like t_stage, n_stage, race, estrogen_status, progesterone_status, sqrt_examined, age have a P-value smaller than 0.05 indicating significance. Therefore, our 1st partial test may include the significant covariates. 
+
+
+```{r partial test on binary Y}
+
+# 1st binary partial test with all significant covariates
+# We will still keep marital_status because one group in this variable is significant
+binmodel_partial_1 = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age, family = binomial, newbc2)
+
+summary(binmodel_partial_1)
+
+# 2nd binary partial test with all in-significant covariates
+binmodel_partial_2 = glm(status ~ a_stage + ln_tumor, family = binomial, newbc2)
+
+summary(binmodel_partial_2)
+
+# 3rd binary partial test with some significant in 2nd test added 
+binmodel_partial_3 = glm(status ~ marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age + a_stage + ln_tumor, family = binomial, newbc2)
+
+summary(binmodel_partial_3)
+
+```
+- Our 1st partial test only include the significant predicts on global test, and then we also did a second partial test includes all the covariates that are non significant, and we can see the 1st partial model has an AIC at 3016.9. While the second model with all the non signifcant covraites only get an AIC at 3357.7, which is higher than the first model, so we will definitely not use the model 2 combination. However, we do discover some covariates are significant on the second model like a_stage, and ln_tumor, so we include these 2 again into the 1st model to get our 3rd model. However, our 3rd model has a higher AIC at 3031.1 than model 1, so we will continue to keep with model 1.
+
+
+## Step-wise: forward/backward/AiC
+
+
+### Step-wise for binary Y
+
+```{r backward elimination on binary Y}
+binglobal_backward = stepAIC(model_global_bin, direction = "backward")
+bin1_backward = stepAIC(binmodel_partial_1, direction = "backward")
+bin2_backward = stepAIC(binmodel_partial_2, direction = "backward")
+bin3_backward = stepAIC(binmodel_partial_3, direction = "backward")
+```
+From the backward elimination, the best model with lowest AIC of 3016.87 is: status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age.
+
+
+```{r forward selection on binary Y}
+binglobal_backward = stepAIC(model_global_bin, direction = "forward")
+bin1_backward = stepAIC(binmodel_partial_1, direction = "forward")
+bin2_backward = stepAIC(binmodel_partial_2, direction = "forward")
+bin3_backward = stepAIC(binmodel_partial_3, direction = "forward")
+```
+From the forward selection, the best model with lowest AIC of 3016.87 status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status  + sqrt_examined + age. Backward and forward elimination selection both produce same AIC value and the models are the same.
+
+```{r stepwise regression on binary numeric Y}
+binglobal_backward = stepAIC(model_global_bin, direction = "both")
+bin1_backward = stepAIC(binmodel_partial_1, direction = "both")
+bin2_backward = stepAIC(binmodel_partial_2, direction = "both")
+bin3_backward = stepAIC(binmodel_partial_3, direction = "both")
+```
+- From the stepwise regression, we have the lowest AIC of 3016.98 which is the model of status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age. The model is the same compared to the one we picked from the backward elimination and forward elimination. We will go with this model for further statistical testing. 
+
+## ANOVA
+
+#### anova for binary Y
+```{r}
+model2 <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age, data = newbc2)
+anova_result1 <- anova(model2)
+print(anova_result1)
+summary(model2)
+```
+
+```{r}
+null_model <- glm(status ~ 1, family = binomial, data = newbc2)
+
+anova(null_model, model2, test = "Chisq")
+```
+
+With p significant p value, we have enough evidence to show that the full model is better, which is status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age
+
+## Criterion procedures
+
+```{r}
+# For the binary outcome, we will use the AIC criterion as well
+aic_selected_bin_model <- stepAIC(glmfit, direction = "both")
+summary(aic_selected_bin_model)
+
+# And the BIC criterion
+bic_selected_bin_model <- stepAIC(glmfit, direction = "both", family = binomial, k = log(nrow(newbc2)))
+summary(bic_selected_bin_model)
+
+
+```
+In the binary model, the final model according to the AIC selection is status ~ race + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + reginol_node_positive + age. 
+
+The BIC had the selection of model status ~ race + differentiate + estrogen_status + progesterone_status + ln_tumor + sqrt_examined + reginol_node_positive + age. 
+
+### Plots to check the model assumptions:
+
+```{r plots check model assumption}
+
+
+par(mfrow = c(3,4))
+plot(aic_selected_bin_model)
+plot(bic_selected_bin_model)
+plot(binmodel_partial_1)
+
+
+```
+
+
+### VIF
+```{r}
+
+```
+
+
+
+
+
+
+3.0 transformation edited
+3.1 interaction transformation ??
+3.2 partial test 
+3.3 diagnostic boxcox
+4. Step-wise: forward/ backward /AIC 
+5. final model 
+6. model assumption (check multicolinearity (VIF))
+7. cross validation
+
+
+
