@@ -14,9 +14,9 @@ library(table1)
 library(gridExtra)
 library(MASS)
 library(car)
-library(dplyr)
 library(leaps)
 library(corrplot)
+library(caret)
 ```
 
 ## Data Clean
@@ -466,7 +466,7 @@ Based on the above indicator test summary, we delete grade and x6th_stage becaus
 
 ### Initial Model
 
-```{r}
+```{r glmfit}
 glmfit <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
                a_stage + estrogen_status + progesterone_status + ln_tumor + 
                sqrt_examined + reginol_node_positive + age, 
@@ -608,6 +608,7 @@ From the both direction step-wise, the best model with interaction term has lowe
 
 
 ### VIF
+
 ```{r}
 # Calculate VIF for the model without interaction
 vif_result_bic <- vif(stepwise_model)
@@ -643,35 +644,26 @@ anova(model_no_interaction, model_with_interaction, test = "Chisq")
 
 The p-value is  below the common alpha level of 0.05, indicating that the inclusion of interaction terms in the model significantly improves the fit compared to the model without interaction terms. This result supports selecting the model with interaction terms, as it provides a better explanation of the variation in the response variable (status).
 
+### global F test for binary Y
 
-## ANOVA
-
-#### anova for binary Y
-```{r}
+```{r anova model_with_interaction}
 anova_result1 <- anova(model_with_interaction)
 print(anova_result1)
 summary(model_with_interaction)
 ```
 
-```{r}
-null_model <- glm(status ~ 1, data = bc_ref, family = binomial)
-
-anova(null_model, model_with_interaction, test = "Chisq")
-```
-
-With p significant p value, we have enough evidence to show that the full model is better, which is status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive + marital_status + progesterone_status:race + race:marital_status
+With p significant p value, we have enough evidence to show that the model performs well, which is status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive + marital_status + progesterone_status:race + race:marital_status
 
 ## Criterion procedures
 
-
-
 ### Model with Interaction terms
-```{r}
-aic_selected_bin_model <- stepAIC(model_with_interaction, direction = "both")
-summary(aic_selected_bin_model)
 
-bic_selected_bin_model <- stepAIC(model_with_interaction, direction = "both", family = binomial, k = log(nrow(bc_ref)))
-summary(bic_selected_bin_model)
+```{r Model with Interaction terms}
+aic_selected_bin_model1 <- stepAIC(model_with_interaction, direction = "both")
+summary(aic_selected_bin_model1)
+
+bic_selected_bin_model1 <- stepAIC(model_with_interaction, direction = "both", family = binomial, k = log(nrow(bc_ref)))
+summary(bic_selected_bin_model1)
 
 
 ```
@@ -680,12 +672,13 @@ In the interaction model, the AIC selected model is status ~ race + marital_stat
 The BIC selected model is status ~ race + differentiate + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + sqrt_examined + age.
 
 ### Model without Interaction Terms
-```{r}
-aic_selected_bin_model <- stepAIC(model_no_interaction, direction = "both")
-summary(aic_selected_bin_model)
 
-bic_selected_bin_model <- stepAIC(model_no_interaction, direction = "both", family = binomial, k = log(nrow(newbc)))
-summary(bic_selected_bin_model)
+```{r Model without Interaction Terms}
+aic_selected_bin_model2 <- stepAIC(model_no_interaction, direction = "both")
+summary(aic_selected_bin_model2)
+
+bic_selected_bin_model2 <- stepAIC(model_no_interaction, direction = "both", family = binomial, k = log(nrow(newbc)))
+summary(bic_selected_bin_model2)
 
 ```
 In the model without interaction, the AIC selected model is status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive, having a AIC value of 2961.5.
@@ -701,17 +694,107 @@ The BIC selected model is status ~ progesterone_status + differentiate + t_stage
 
 
 par(mfrow = c(3,4))
-plot(aic_selected_bin_model)
-plot(bic_selected_bin_model)
-
+plot(aic_selected_bin_model1)
+plot(bic_selected_bin_model1)
+plot(aic_selected_bin_model2)
+plot(bic_selected_bin_model2)
 
 ```
 
 
+## Cross Validation
+
+```{r 10 fold cv}
+y <- bc_ref[["status"]] # Target column
+trainIndex <- caret::createDataPartition(y, p = 0.9, list = FALSE)
+
+# Create training and testing sets
+train=bc_ref[trainIndex,]
+test=bc_ref[-trainIndex,]
+head(train)
+```
 
 
+```{r aic with interaction}
+# Fit logistic regression model with cross-validation
+set.seed(123)
+train_control1 <- trainControl(method = "cv", number = 10, classProbs = TRUE)
+formula1 <- formula(aic_selected_bin_model1$model)
+cvmodel1 <- train(formula1, data = train, method = "glm", family = "binomial", 
+                  trControl = train_control1)
+print(cvmodel1)
 
+fitted_model1 <- glm(formula1, data = train, family = "binomial")
+yhat1 <- predict(fitted_model1, newdata = test, type = "response")
+binary_predictions1 <- ifelse(yhat1 > 0.5, 1, 0)
+confusionMatrix(factor(binary_predictions1), factor(test[["status"]]))
+```
 
+RMSE = 0.3352855
+Rsquared = 0.1364786
+MAE = 0.2235504    
+
+Accuracy : 0.8433
+
+```{r bic with interaction}
+set.seed(123)
+train_control2 <- trainControl(method = "cv", number = 10, classProbs = TRUE)
+formula2 <- formula(bic_selected_bin_model1$model)
+cvmodel2 <- train(formula2, data = train, method = "glm", family = "binomial", 
+                  trControl = train_control2)
+print(cvmodel2)
+
+fitted_model2 <- glm(formula2, data = train, family = "binomial")
+yhat2 <- predict(fitted_model2, newdata = test, type = "response")
+binary_predictions2 <- ifelse(yhat1 > 0.5, 1, 0)
+confusionMatrix(factor(binary_predictions2), factor(test[["status"]]))
+```
+
+RMSE = 0.3351174
+Rsquared = 0.1362244
+MAE = 0.2244595  
+
+Accuracy : 0.8433   
+
+```{r aic without interaction}
+set.seed(123)
+train_control3 <- trainControl(method = "cv", number = 10, classProbs = TRUE)
+formula3 <- formula(aic_selected_bin_model2$model)
+cvmodel3 <- train(formula3, data = train, method = "glm", family = "binomial", 
+                  trControl = train_control3)
+print(cvmodel3)
+
+fitted_model3 <- glm(formula3, data = train, family = "binomial")
+yhat3 <- predict(aic_selected_bin_model2, newdata = test, type = "response")
+binary_predictions3 <- ifelse(yhat3 > 0.5, 1, 0)
+confusionMatrix(factor(binary_predictions3), factor(test[["status"]]))
+```
+
+RMSE = 0.3363186
+Rsquared = 0.1288768
+MAE = 0.2262781
+
+Accuracy : 0.8507
+
+```{r bic without interaction}
+set.seed(123)
+train_control4 <- trainControl(method = "cv", number = 10, classProbs = TRUE)
+formula4 <- formula(bic_selected_bin_model2$model)
+cvmodel4 <- train(formula4, data = train, method = "glm", family = "binomial", 
+                  trControl = train_control4)
+print(cvmodel4)
+
+fitted_model4 <- glm(formula4, data = train, family = "binomial")
+yhat4 <- predict(bic_selected_bin_model2, newdata = test, type = "response")
+binary_predictions4 <- ifelse(yhat4 > 0.5, 1, 0)
+confusionMatrix(factor(binary_predictions4), factor(test[["status"]]))
+```
+
+RMSE = 0.3363186
+Rsquared = 0.1288768
+MAE = 0.2262781
+
+Accuracy : 0.8507
 
 
 3.0 transformation edited
