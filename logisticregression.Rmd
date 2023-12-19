@@ -402,6 +402,44 @@ newbc = bc |>
   dplyr::select(-survival_months)
 newbc
 ```
+## chi-square tets
+```{r}
+# Create an empty data frame to store chi-square test results
+chi_square_results <- data.frame(Variable = character(), 
+                                 ChiSquare = numeric(), 
+                                 PValue = numeric(), 
+                                 stringsAsFactors = FALSE)
+
+# Specify the dependent variable
+dependent_var <- newbc$status
+
+# List of independent variables
+independent_vars <- newbc[,-13]
+
+# Perform chi-square test for each independent variable
+for (var in names(independent_vars)) {
+  # Create a contingency table
+  table <- table(dependent_var, newbc[[var]])
+  
+  # Perform chi-square test and suppress warnings for expected count less than 5
+  test <- try(suppressWarnings(chisq.test(table)), silent = TRUE)
+  
+  # Store the results if the test was successful
+  if (!inherits(test, "try-error")) {
+    chi_square_results <- rbind(chi_square_results, data.frame(Variable = var, 
+                                                               ChiSquare = test$statistic, 
+                                                               PValue = test$p.value))
+  } else {
+    # Store NA if the test failed due to too many zero counts
+    chi_square_results <- rbind(chi_square_results, data.frame(Variable = var, 
+                                                               ChiSquare = NA, 
+                                                               PValue = NA))
+  }
+}
+
+chi_square_results
+```
+Based on the above chi-squared table, each variable listed has been tested for independence with respect to the dependent variable, and each shows a significant relationship.
 
 ## Indicator Test
 
@@ -446,15 +484,14 @@ plot(glmfit)
 # 2 represents "black"
 # 3 represents "others"
 ## A newdataset with "white" as reference
-bc_ref =
-  newbc |>
-  mutate(
-     race= relevel(
-       race, ref = 1
-     )
-     )
 
-bc_ref
+# Ensure race is a factor and not an ordered factor
+bc_ref <- newbc |> 
+  mutate(race = factor(race, ordered = FALSE))
+
+# Relevel to make white as reference
+bc_ref <- bc_ref |> 
+  mutate(race = relevel(race, ref = 1))
 
 ## Run a SLR for race only
 single_race = glm(status ~ race, family = binomial, bc_ref)
@@ -510,6 +547,7 @@ summary(model_inter)
 ### Step-wise for MLR without interaction term:
 
 ```{r}
+set.seed(123)
 # Full Model
 full_model <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
                   a_stage + estrogen_status + progesterone_status + reginol_node_positive + 
@@ -533,7 +571,9 @@ stepwise_model <- step(min_model, scope = list(lower = min_model, upper = full_m
 # Print the summary of the chosen model
 summary(forward_model)
 # or summary(backward_model)
+summary(backward_model)
 # or summary(stepwise_model)
+summary(stepwise_model)
 
 ```
 
@@ -565,9 +605,6 @@ summary(stepwise_interaction_model)
 From the both direction step-wise, the best model with interaction term has lowest AIC of 2987.9 is: status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive + marital_status + progesterone_status:race + race:marital_status.
 
 
-
-
-
 ## Partial Test 
 
 ### Partial Test for binary Y
@@ -591,66 +628,23 @@ anova(model_no_interaction, model_with_interaction, test = "Chisq")
 
 The p-value is  below the common alpha level of 0.05, indicating that the inclusion of interaction terms in the model significantly improves the fit compared to the model without interaction terms. This result supports selecting the model with interaction terms, as it provides a better explanation of the variation in the response variable (status).
 
--------------can be deleted below----------------
-```{r global test on binary Y}
-# Our 1st global model for the predicts without colinearity and not normal predicts
-model_global_bin = glm(status ~ race + marital_status + t_stage + n_stage + 
-                       differentiate + a_stage +estrogen_status + progesterone_status + ln_tumor + sqrt_examined + age, family = binomial, newbc)
-
-summary(model_global_bin)
-
-```
-From the summary of the global model, we can see that from the P-value of a_stage, ln_tumor, marital_status(2, 3, 4) have the p-value above 0.05 which is not significant. While differentiate has a 0.0729 p-value, and t_stage3 has a p-value of 0.0909, we may consider keep them. The covariates like t_stage, n_stage, race, estrogen_status, progesterone_status, sqrt_examined, age have a P-value smaller than 0.05 indicating significance. Therefore, our 1st partial test may include the significant covariates. 
-
-
-```{r partial test on binary Y}
-
-# 1st binary partial test with all significant covariates
-# We will still keep marital_status because one group in this variable is significant
-binmodel_partial_1 = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age, family = binomial, newbc)
-
-summary(binmodel_partial_1)
-
-# 2nd binary partial test with all in-significant covariates
-binmodel_partial_2 = glm(status ~ a_stage + ln_tumor, family = binomial, newbc)
-
-summary(binmodel_partial_2)
-
-# 3rd binary partial test with some significant in 2nd test added 
-binmodel_partial_3 = glm(status ~ marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age + a_stage + ln_tumor, family = binomial, newbc)
-
-summary(binmodel_partial_3)
-
-# 4rd binary partial test with some selected interaction terms
-model_inter = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
-               a_stage + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + 
-               sqrt_examined + age +  race*(marital_status + progesterone_status + ln_tumor),
-               data = bc_ref, family = binomial)
-
-summary(model_inter)
-
-```
-- Our 1st partial test only include the significant predicts on global test, and then we also did a second partial test includes all the covariates that are non significant, and we can see the 1st partial model has an AIC at 3016.9. While the second model with all the non signifcant covraites only get an AIC at 3357.7, which is higher than the first model, so we will definitely not use the model 2 combination. However, we do discover some covariates are significant on the second model like a_stage, and ln_tumor, so we include these 2 again into the 1st model to get our 3rd model. However, our 3rd model has a higher AIC at 3031.1 than model 1, so we will continue to keep with model 1. Comparing Model 1 with the model 4 with some interaction terms included in race, we get a smaller AIC in model 4. Therefore, we will choose model 4 in our next step.
--------------can be deleted above----------------
-
 
 ## ANOVA
 
 #### anova for binary Y
 ```{r}
-model2 <- glm(status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age, data = newbc)
-anova_result1 <- anova(model2)
+anova_result1 <- anova(model_with_interaction)
 print(anova_result1)
-summary(model2)
+summary(model_with_interaction)
 ```
 
 ```{r}
-null_model <- glm(status ~ 1, family = binomial, data = newbc)
+null_model <- glm(status ~ 1, data = bc_ref, family = binomial)
 
-anova(null_model, model2, test = "Chisq")
+anova(null_model, model_with_interaction, test = "Chisq")
 ```
 
-With p significant p value, we have enough evidence to show that the full model is better, which is status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + sqrt_examined + age
+With p significant p value, we have enough evidence to show that the full model is better, which is status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive + marital_status + progesterone_status:race + race:marital_status
 
 ## Criterion procedures
 
@@ -671,7 +665,6 @@ bic_selected_model <- stepAIC(bic_selected_bin_model, direction = "backward")
 ```{r}
 bic_selected_model <- stepAIC(bic_selected_bin_model, direction = "backward")
 
-
 ```
 
 
@@ -688,7 +681,6 @@ The BIC selected model is status ~ race + differentiate + estrogen_status + prog
 par(mfrow = c(3,4))
 plot(aic_selected_bin_model)
 plot(bic_selected_bin_model)
-plot(binmodel_partial_1)
 
 
 ```
