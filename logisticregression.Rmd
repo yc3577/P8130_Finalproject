@@ -510,7 +510,7 @@ summary(model_ref)
 
 ```{r}
 
-## Run a MLR with race ref and with interaction terms
+## Run a logistic linear with race ref and with interaction terms
 model_refinter = glm(status ~ race + marital_status + t_stage + n_stage + differentiate + 
                a_stage + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + 
                sqrt_examined + age + 
@@ -605,6 +605,21 @@ summary(stepwise_interaction_model)
 From the both direction step-wise, the best model with interaction term has lowest AIC of 2987.9 is: status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive + marital_status + progesterone_status:race + race:marital_status.
 
 
+
+
+### VIF
+```{r}
+# Calculate VIF for the model without interaction
+vif_result_bic <- vif(stepwise_model)
+print(vif_result_bic)
+
+# Calculate VIF for the interaction model
+vif_result_aic <- vif(stepwise_interaction_model, type = 'predictor')
+print(vif_result_aic)
+
+
+```
+
 ## Partial Test 
 
 ### Partial Test for binary Y
@@ -650,27 +665,34 @@ With p significant p value, we have enough evidence to show that the full model 
 
 
 
+### Model with Interaction terms
 ```{r}
-aic_selected_bin_model <- stepAIC(model_inter, direction = "both")
+aic_selected_bin_model <- stepAIC(model_with_interaction, direction = "both")
 summary(aic_selected_bin_model)
 
-bic_selected_bin_model <- stepAIC(model_inter, direction = "both", family = binomial, k = log(nrow(bc_ref)))
+bic_selected_bin_model <- stepAIC(model_with_interaction, direction = "both", family = binomial, k = log(nrow(bc_ref)))
 summary(bic_selected_bin_model)
 
 
-bic_selected_model <- stepAIC(bic_selected_bin_model, direction = "backward")
-
 ```
-
-```{r}
-bic_selected_model <- stepAIC(bic_selected_bin_model, direction = "backward")
-
-```
-
-
 In the interaction model, the AIC selected model is status ~ race + marital_status + t_stage + n_stage + differentiate + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + sqrt_examined + age + race:marital_status + race:progesterone_status + race:ln_tumor.
 
 The BIC selected model is status ~ race + differentiate + estrogen_status + progesterone_status + reginol_node_positive + ln_tumor + sqrt_examined + age.
+
+### Model without Interaction Terms
+```{r}
+aic_selected_bin_model <- stepAIC(model_no_interaction, direction = "both")
+summary(aic_selected_bin_model)
+
+bic_selected_bin_model <- stepAIC(model_no_interaction, direction = "both", family = binomial, k = log(nrow(newbc)))
+summary(bic_selected_bin_model)
+
+```
+In the model without interaction, the AIC selected model is status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive, having a AIC value of 2961.5.
+
+The BIC selected model is status ~ progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive with AIC value of 3003.7.
+
+
 
 
 ### Plots to check the model assumptions:
@@ -686,17 +708,6 @@ plot(bic_selected_bin_model)
 ```
 
 
-### VIF
-```{r}
-# Calculate VIF for the model selected by AIC
-vif_result_aic <- vif(aic_selected_bin_model, type = 'predictor')
-print(vif_result_aic)
-
-# Calculate VIF for the model selected by BIC
-vif_result_bic <- vif(bic_selected_bin_model)
-print(vif_result_bic)
-
-```
 
 
 
