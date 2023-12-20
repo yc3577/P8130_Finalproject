@@ -614,24 +614,6 @@ From the both direction step-wise, the best model with interaction term has lowe
 
 
 
-### VIF
-
-```{r}
-# Calculate VIF for the model without interaction
-vif_result_aic1 <- vif(stepwise_model)
-print(vif_result_aic1)
-
-# Calculate VIF for the interaction model
-vif_result_aic <- vif(stepwise_interaction_model, type = 'predictor')
-print(vif_result_aic)
-
-
-```
-The VIF for our stepwise model without interaction term has very low values in each covariates, all of them are less than 0.
-
-However, in the stepwise model with interaction term, we can see the race variable and the interaction terms progesterone_status:race and race:marital_status have very high vif. Therefore, it means that colliearity exists in these terms, and we should drop the term Race in the model. 
-
-
 
 
 ## Partial Test 
@@ -665,7 +647,7 @@ print(anova_result1)
 summary(model_with_interaction)
 ```
 
-With p significant p value, we have enough evidence to show that the model performs well, which is status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive + marital_status + progesterone_status:race + race:marital_status
+With significant p value, we have enough evidence to show that the model performs well, which is status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive + marital_status + progesterone_status:race + race:marital_status
 
 ## Criterion procedures
 

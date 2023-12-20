@@ -17,5 +17,293 @@ library(car)
 library(dplyr)
 library(leaps)
 library(corrplot)
+library(patchwork)
 ```
 
+## Data Clean
+
+```{r data load}
+exam_score =
+  read_csv("Project_1_data.csv") |>
+  janitor::clean_names()
+  
+exam_score
+summary(exam_score)
+```
+
+
+
+```{r data clean}
+exam = exam_score |>
+  mutate(
+    gender = factor(gender, levels = c("female", "male")),
+    ethnic_group = factor(ethnic_group, levels = c("group A", "group B", 
+                                                       "group C", "group D", 
+                                                       "group E")),
+    parent_educ = factor(parent_educ, levels = c("some high school", "high school", 
+                                                 "some college", "associate's degree", 
+                                                 "bachelor's degree", "master's degree")),
+    lunch_type = factor(lunch_type, levels = c("free/reduced", "standard")),
+    test_prep = factor(test_prep, levels = c("none", "completed")),
+    parent_marital_status = factor(parent_marital_status, levels = c("married", 
+                                                     "divorced","single", "widowed")),
+    practice_sport = factor(practice_sport, levels = c("never", "sometimes", "regularly")),
+    is_first_child = factor(is_first_child, levels = c("yes", "no")),
+    transport_means = factor(transport_means, levels = c("school_bus", "private")),
+    wkly_study_hours = factor(wkly_study_hours, 
+                                 levels = c("< 5", "> 10", "10-May"))
+    )
+exam
+```
+## Descriptive statistics for all variables
+
+```{r Descriptive statistics}
+summary(exam)
+```
+
+
+
+
+```{r data clean}
+exam_cor = exam |>
+  mutate(
+    gender=case_when(
+      gender == "female" ~ 0,
+      gender == "male" ~ 1),
+    ethnic_group=case_when(
+      ethnic_group == "group A" ~ 1,
+      ethnic_group == "group B" ~ 2,
+      ethnic_group == "group C" ~ 3,
+      ethnic_group == "group D" ~ 4,
+      ethnic_group == "group E" ~ 5),
+    parent_educ=case_when(
+      parent_educ == "some high school" ~ 1,
+      parent_educ == "high school" ~ 2,
+      parent_educ == "some college" ~ 3,
+      parent_educ == "associate's degree" ~ 4,
+      parent_educ == "bachelor's degree" ~ 5,
+      parent_educ == "master's degree" ~ 6),
+    
+    lunch_type=case_when(
+      lunch_type == "free/reduced" ~ 1,
+      lunch_type == "standard" ~ 2),
+    test_prep=case_when(
+      test_prep == "none" ~ 1,
+      test_prep == "completed" ~ 2),
+    parent_marital_status=case_when(
+      parent_marital_status == "married" ~ 1,
+      parent_marital_status == "divorced" ~ 2,
+      parent_marital_status == "single" ~ 3,
+      parent_marital_status == "widowed" ~ 4),
+    practice_sport=case_when(
+      practice_sport == "never" ~ 1,
+      practice_sport == "sometimes" ~ 2,
+      practice_sport == "regularly" ~ 3),
+    is_first_child=case_when(
+      is_first_child == "yes" ~ 1,
+      is_first_child == "no" ~ 0),
+    transport_means=case_when(
+      transport_means == "school_bus" ~ 1,
+      transport_means == "private" ~ 0),
+    wkly_study_hours=case_when(
+      wkly_study_hours == "< 5" ~ 1,
+      wkly_study_hours == "> 10" ~ 2,
+      wkly_study_hours == "10-May" ~ 3)
+
+    ) |>
+  na.omit()
+```
+
+
+## Covariance and Correlation
+
+```{r correlation}
+plot(exam_cor)
+
+cor(exam_cor) |>
+  knitr::kable(digits=4,caption="Correlation for all variables")
+
+```
+
+```{r plot for correlation}
+corrplot(cor(exam_cor), method = "square", type = "upper", diag = FALSE)
+
+```
+
+
+## Exploratory visualisation
+
+
+
+```{r}
+plot_histograms_panels <- function(data, x_vars, y_vars, plots_per_panel = 9) {
+  all_plots <- list()
+  plot_count <- 1
+  
+  for (x in x_vars) {
+    for (y in y_vars) {
+      p <- data %>%
+        ggplot(aes_string(x = x)) + 
+        geom_bar(color = "blue", fill = alpha("blue", 0.5)) +
+        theme_minimal() +
+        labs(title = paste(y, "by", x),
+             x = x,
+             y = "Count")
+      all_plots[[plot_count]] <- p
+      plot_count <- plot_count + 1
+    }
+  }
+  
+  # Split the list of plots into multiple patchwork panels
+  panel_list <- list()
+  num_panels <- ceiling(length(all_plots) / plots_per_panel)
+  for (i in 1:num_panels) {
+    panel_start <- ((i - 1) * plots_per_panel) + 1
+    panel_end <- min(i * plots_per_panel, length(all_plots))
+    panel_plots <- all_plots[panel_start:panel_end]
+    panel_list[[i]] <- do.call(patchwork::wrap_plots, c(panel_plots, ncol = 3))
+  }
+  
+  return(panel_list)
+}
+
+# Example usage
+x_vars <- c("gender", "ethnic_group", "parent_educ", "lunch_type","test_prep","parent_marital_status","practice_sport",
+            "is_first_child","nr_siblings","transport_means", "wkly_study_hours")
+y_vars <- c("reading_score", "writing_score", "math_score") # Replace with your y variables
+
+panels <- plot_histograms_panels(exam, x_vars, y_vars, 9)
+
+# To print the first panel, for example
+print(panels[[1]])
+print(panels[[2]])
+print(panels[[3]])
+print(panels[[4]])
+
+```
+
+# Statistical Testing
+
+### T test for individual variables
+
+For continuous variables and variables having only 2 categories.
+```{r}
+# Gender vs. 3 different Scores
+t.test(math_score ~ gender, data = exam)
+t.test(writing_score ~ gender, data = exam)
+t.test(reading_score ~ gender, data = exam)
+
+# Lunch-Type
+t.test(math_score ~ lunch_type, data = exam)
+t.test(writing_score ~ lunch_type, data = exam)
+t.test(reading_score ~ lunch_type, data = exam)
+
+# Test prep
+t.test(math_score ~ test_prep, data = exam)
+t.test(writing_score ~ test_prep, data = exam)
+t.test(reading_score ~ test_prep, data = exam)
+
+# is_first_child
+t.test(math_score ~ is_first_child, data = exam)
+t.test(writing_score ~ is_first_child, data = exam)
+t.test(reading_score ~ is_first_child, data = exam)
+
+# nr_siblings
+cor.test(exam$math_score, exam$nr_siblings, use = "complete.obs")
+cor.test(exam$reading_score, exam$nr_siblings, use = "complete.obs")
+cor.test(exam$writing_score, exam$nr_siblings, use = "complete.obs")
+
+# transport_means
+t.test(math_score ~ transport_means, data = exam)
+t.test(writing_score ~ transport_means, data = exam)
+t.test(reading_score ~ transport_means, data = exam)
+
+
+
+```
+
+
+
+For variables with more than 2 categories
+
+```{r}
+perform_anova_tests <- function(data, x_vars, y_vars) {
+  results <- list()
+  result_count <- 1
+
+  for (x in x_vars) {
+    for (y in y_vars) {
+      # Check if the variable has more than 2 levels
+      if (length(unique(data[[x]])) > 2) {
+        anova_result <- aov(reformulate(x, response = y), data = data)
+        results[[result_count]] <- list(x_var = x, y_var = y, test_result = summary(anova_result))
+        result_count <- result_count + 1
+      }
+    }
+  }
+
+  return(results)
+}
+
+# Example usage
+x_vars <- c("ethnic_group", "parent_educ","parent_marital_status","practice_sport","wkly_study_hours") # Replace with your x variables
+y_vars <- c("math_score", "reading_score", "writing_score") # Replace with your y variables
+
+anova_results <- perform_anova_tests(exam, x_vars, y_vars)
+
+# To print the results
+for (result in anova_results) {
+  print(paste("ANOVA for", result$x_var, "and", result$y_var))
+  print(result$test_result)
+}
+
+
+```
+
+
+From the result, we can see the p value is insignificant for all of those variables for Math score: is_first_child, nr_siblings, transportation_means, practice_sports
+
+These variables are also insignificant for writing scores. 
+
+For reading scores, only nb_siblings, transportation_means, and practice_sport are insignificant
+
+
+## Model Building
+
+
+```{r}
+lm_math <- lm(math_score ~ gender + ethnic_group + parent_educ + lunch_type + test_prep + parent_marital_status + wkly_study_hours, data = exam)
+summary(lm_math)
+
+par(mfrow = c(2, 2))
+plot(lm_math)
+vif(lm_math)
+
+```
+
+
+```{r}
+lm_writing <- lm(writing_score ~ gender + ethnic_group + parent_educ + lunch_type + test_prep + parent_marital_status + wkly_study_hours, data = exam)
+summary(lm_writing)
+
+par(mfrow = c(2, 2))
+plot(lm_writing)
+vif(lm_writing)
+
+```
+
+
+```{r}
+lm_reading <- lm(math_score ~ gender + ethnic_group + parent_educ + lunch_type + test_prep + parent_marital_status + wkly_study_hours + is_first_child, data = exam)
+summary(lm_reading)
+
+par(mfrow = c(2, 2))
+plot(lm_reading)
+
+vif(lm_reading)
+
+```
+
+
+
+VIF and diagnostic seems good
