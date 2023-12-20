@@ -711,15 +711,6 @@ anova(model_no_interaction, model_with_interaction, test = "Chisq")
 
 The p-value is  below the common alpha level of 0.05, indicating that the inclusion of interaction terms in the model significantly improves the fit compared to the model without interaction terms. This result supports selecting the model with interaction terms, as it provides a better explanation of the variation in the response variable (status).
 
-### global F test for binary Y
-
-```{r anova model_with_interaction}
-anova_result1 <- anova(model_with_interaction)
-print(anova_result1)
-summary(model_with_interaction)
-```
-
-With significant p value, we have enough evidence to show that the model performs well, which is status ~ n_stage + progesterone_status + differentiate + t_stage + age + race + estrogen_status + sqrt_examined + reginol_node_positive + marital_status + progesterone_status:race + race:marital_status
 
 ## Criterion procedures
 
@@ -755,38 +746,93 @@ The BIC selected model is status ~ progesterone_status + differentiate + t_stage
 
 
 
-### Plots to check the model assumptions:
+### Plots to check the model assumptions for four candidate models:
 
-```{r plots check model assumption}
-par(mfrow = c(3,4))
-plot(aic_selected_bin_model1)
-plot(bic_selected_bin_model1)
-plot(aic_selected_bin_model2)
-plot(bic_selected_bin_model2)
-```
 ```{r}
-# final model assumption check
-finalmodel <- glm(status ~ progesterone_status + differentiate + t_stage + age + 
-                  race + estrogen_status + sqrt_examined + reginol_node_positive, 
+# model1 assumption check
+model1 <- glm(status ~ progesterone_status + differentiate + t_stage + age + 
+    race + estrogen_status + sqrt_examined + reginol_node_positive + 
+    marital_status + progesterone_status:race + race:marital_status, 
                   data=bc_ref, family=binomial)
 # check multicollinearity
-vif(finalmodel)
+vif(model1)
 
 # Model diagnostics - Plotting to check for influential outliers, equal variance
 par(mfrow = c(2, 2))
-plot(finalmodel)
-
+plot(model1)
 ```
 ```{r}
-# Compute AUC for model assessment
-roc_result <- roc(bc_ref$status, fitted(finalmodel))
-auc_result <- auc(roc_result)
-print(auc_result)
+# Compute AUC for model1 assessment
+roc_result1 <- roc(bc_ref$status, fitted(model1))
+auc_result1 <- auc(roc_result1)
+print(auc_result1)
 ```
 
 
-For the final model:
-The diagnostic charts for the logistic regression model imply that the assumptions are largely met. The residuals versus fitted values plot shows a pattern that could hint at some non-linearity, but it's subtle. Few outliers are suggested by slight departures from the expected line in the tails of the normal Q-Q plot. The scale-location plot suggests consistent variance across the data. While the residuals versus leverage plot points to a few outliers, these do not appear to drastically influence the model's predictions. VIF values also suggest that the predictors in the final model are relatively independent of each other. An Area Under the Receiver Operating Characteristic (ROC) Curve (AUC) of 0.7499 indicates that the logistic regression model has good discriminative ability. 
+```{r}
+# model2 assumption check
+model2 <- glm(status ~ progesterone_status + differentiate + age + race + sqrt_examined + 
+    reginol_node_positive, 
+                  data=bc_ref, family=binomial)
+# check multicollinearity
+vif(model2)
+
+# Model diagnostics - Plotting to check for influential outliers, equal variance
+par(mfrow = c(2, 2))
+plot(model2)
+```
+```{r}
+# Compute AUC for model2 assessment
+roc_result2 <- roc(bc_ref$status, fitted(model2))
+auc_result2 <- auc(roc_result2)
+print(auc_result2)
+```
+
+
+```{r}
+# model3 assumption check
+model3 <- glm(status ~ n_stage + progesterone_status + differentiate + t_stage + 
+    age + race + estrogen_status + sqrt_examined + reginol_node_positive, 
+                  data=bc_ref, family=binomial)
+# check multicollinearity
+vif(model3)
+
+# Model diagnostics - Plotting to check for influential outliers, equal variance
+par(mfrow = c(2, 2))
+plot(model3)
+```
+
+```{r}
+# Compute AUC for model3 assessment
+roc_result3 <- roc(bc_ref$status, fitted(model3))
+auc_result3 <- auc(roc_result3)
+print(auc_result3)
+```
+
+```{r}
+# model4 assumption check
+model4 <- glm(status ~ progesterone_status + differentiate + t_stage + age + 
+                  race + estrogen_status + sqrt_examined + reginol_node_positive, 
+                  data=bc_ref, family=binomial)
+# check multicollinearity
+vif(model4)
+
+# Model diagnostics - Plotting to check for influential outliers, equal variance
+par(mfrow = c(2, 2))
+plot(model4)
+
+```
+
+```{r}
+# Compute AUC for model4 assessment
+roc_result4 <- roc(bc_ref$status, fitted(model4))
+auc_result4 <- auc(roc_result4)
+print(auc_result4)
+```
+
+
+For the four candidate models:
+The diagnostic charts for logistic regression models imply that the assumptions are largely met. All residuals versus fitted values plot shows a pattern that could hint at some non-linearity, but it's subtle. And there are bare outliers shown in the Q-Q plot. The scale-location plots suggest consistent variance across the data. VIF values also suggest that the predictors in these models are relatively independent of each other. An Area Under the Receiver Operating Characteristic (ROC) Curve (AUC) of around 0.7indicates that the logistic regression model has good discriminative ability. 
 
 ## Cross Validation
 
