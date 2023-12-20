@@ -372,6 +372,78 @@ grid.arrange(plot2race, plot3marital,plot4tstage,
              plot5nstage, plot6x6thstage,plot7differentate,
              plot8grade,plot9astage,plot11estrogen,plot12progesterone, ncol = 3)
 ```
+## Boxplot visualissation to look for outliers
+```{r boxplots}
+box_age = ggplot(bc, aes(x = age, fill = "blue", alpha = 0.5))+
+        geom_boxplot() +
+        theme(legend.position = 'none') +
+        xlab("Age") +
+        ggtitle("Box Plot Distribution of Age") +
+        theme_minimal()
+
+box_age
+
+box_tumor = ggplot(bc, aes(x = tumor_size, fill = "blue", alpha = 0.5))+
+        geom_boxplot() +
+        theme(legend.position = 'none') +
+        xlab("Tumor Size") +
+        ggtitle("Box Plot Distribution of Tumor Size") +
+        theme_minimal()
+
+box_tumor
+
+box_examined = ggplot(bc, aes(x = regional_node_examined, fill = "blue", alpha = 0.5))+
+        geom_boxplot() +
+        theme(legend.position = 'none') +
+        xlab("Regional Node Examined") +
+        ggtitle("Box Plot Distribution of Regional Node Examined") +
+        theme_minimal()
+
+box_examined
+
+box_positive = ggplot(bc, aes(x = reginol_node_positive, fill = "blue", alpha = 0.5))+
+        geom_boxplot() +
+        theme(legend.position = 'none') +
+        xlab("Reginol Node Positive") +
+        ggtitle("Box Plot Distribution of Reginol Node Positive") +
+        theme_minimal()
+
+box_positive
+```
+- From the boxplots, we discover there are outliers in all the boxplots except the age distribution, so we will remove the outliers in our next step. 
+
+
+## Outliers Remove
+```{r outliers removal}
+# Find the quantile
+q1 = quantile(bc$tumor_size, probs = c(0.25, 0.75), na.rm = FALSE)
+iqr1 = IQR(bc$tumor_size)
+upper1 = q1[2] + 1.5*iqr1
+lower1 = q1[1] - 1.5*iqr1
+
+q2 = quantile(bc$regional_node_examined, probs = c(0.25, 0.75), na.rm = FALSE)
+iqr2 = IQR(bc$regional_node_examined)
+upper2 = q2[2] + 1.5*iqr2
+lower2 = q2[1] - 1.5*iqr2
+
+q3 = quantile(bc$reginol_node_positive, probs = c(0.25, 0.75), na.rm = FALSE)
+iqr3 = IQR(bc$reginol_node_positive)
+upper3 = q3[2] + 1.5*iqr3
+lower3 = q3[1] - 1.5*iqr3
+
+bc = bc|>
+  filter(
+    tumor_size <= upper1 & tumor_size >= lower1
+  ) |>
+  filter(
+    regional_node_examined <= upper2 & regional_node_examined >= lower2
+  ) |>
+  filter(
+    reginol_node_positive <= upper3 & reginol_node_positive >= lower3
+  )
+bc
+
+```
 
 ## Transformation
 
